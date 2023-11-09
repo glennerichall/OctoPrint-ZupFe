@@ -1,0 +1,33 @@
+<script type="text/javascript" src="/plugin/zupfe/static/js/constants.js"></script>
+<div id="zupfe-wizard-content" data-bind="css: { 'offline' : !backend_connected() || !backend_initialized() }">
+
+    <div class="wizard-header">
+        <img class="zupfe-logo" src="/plugin/zupfe/static/img/logo.svg"/>
+        <h3>ZupFe For Octoprint</h3>
+        <div class="message-offline alert alert-danger">ZupFe is currently unavailable</div>
+    </div>
+
+    <p><strong>Welcome to ZupFe For Octoprint</strong>, the interactive online G-code
+        viewer. This easy-to-use wizard will guide you through the process of installing and configuring the plugin,
+        ensuring a seamless integration between OctoPrint and ZupFe.</p>
+
+    <p>Get ready to enhance your 3D printing experience with
+        advanced visualization capabilities and take full control over your G-code files.</p>
+
+    <p>Let's dive in and get your
+        OctoPrint-Zupfe setup up and running in no time!
+    </p>
+
+    <form data-bind="attr: {action: urls()[URL_PRINTER_LINK] }" method="POST" target="_blank">
+        <input class="btn btn-primary btn-complete"
+               id="wizard-zupfe-btn-complete"
+               data-bind="attr: { disabled:  !backend_connected() || !backend_initialized() }"
+               type="submit" value="Complete Your Setup Now!"/>
+    </form>
+
+
+    <p>
+        You can skip now and complete your setup at anytime in the OctoPrint settings under the ZupFe For Octoprint tab.
+    </p>
+
+</div>

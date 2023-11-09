@@ -1,0 +1,107 @@
+// TODO: Put your plugin's LESS here, have it generated to ../css.
+.zupfe-logo {
+  width: 1.2em;
+}
+
+#navbar_plugin_zupfe {
+  .disabled {
+    color: gray;
+    pointer-events: none;
+    cursor: not-allowed;
+  }
+
+  .unlinked {
+    position: relative;
+
+    img {
+      filter: grayscale(1);
+    }
+  }
+  :not(.disabled)  .notification{
+    background: #fd0f2e;
+    border: 0.2px solid grey;
+    width: 1.3em;
+    height: 1.3em;
+    border-radius: 1em;
+    position: absolute;
+    right: 1.8em;
+    top: 1.9em;
+    color: #ebdada;
+    font-size: 0.5em;
+    line-height: 1em;
+    text-align: center;
+  }
+}
+#wizard_plugin_zupfe,
+#settings_plugin_zupfe {
+  .message-offline {
+    display: none;
+  }
+  .offline {
+    .zupfe-logo {
+      filter: grayscale(1);
+    }
+
+    .message-offline {
+      display: initial;
+    }
+  }
+}
+
+#navbar_plugin_zupfe,
+#settings_plugin_zupfe,
+#wizard_plugin_zupfe {
+  .unlinked {
+    display: inherit;
+  }
+  div.unlinked {
+    display: block;
+  }
+
+  .linked {
+    display: none;
+  }
+
+  &.zupfe-linked {
+    .unlinked {
+      display: none;
+    }
+
+    .linked {
+      display: inherit;
+    }
+    div.linked {
+      display: block;
+    }
+
+    a.disabled img {
+        filter: grayscale(1);
+    }
+  }
+
+}
+
+
+#settings_plugin_zupfe,
+#wizard_plugin_zupfe {
+
+  .wizard-header {
+    display: flex;
+    flex-direction: row;
+    gap: 1em;
+    justify-content: left;
+    align-items: center;
+    margin-bottom: 2em;
+    border-bottom: 1px solid #eee;
+
+    .zupfe-logo {
+      width: 4em;
+    }
+  }
+
+  .btn-complete {
+    padding: 5px 45px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+}

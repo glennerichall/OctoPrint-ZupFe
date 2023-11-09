@@ -1,0 +1,12 @@
+<a target="_blank"
+   href="{{ plugin_zupfe_frontend_url }}"
+   data-bind="css: { 'disabled': !backend_connected() || !all_bound() || !backend_initialized() }"
+   class="linked">
+    <img class="zupfe-logo" src="/plugin/zupfe/static/img/logo.svg"/>
+</a>
+<a href="#"
+   class="unlinked"
+   data-bind="click: showSettings, css: { 'disabled': !backend_connected() || !all_bound() || !backend_initialized() }">
+    <img class="zupfe-logo" src="/plugin/zupfe/static/img/logo.svg"/>
+    <div class="notification"></div>
+</a>
