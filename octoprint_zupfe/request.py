@@ -62,15 +62,15 @@ async def request_post(url, unpack, headers=None, data=None, max_retries=float('
                         else:
                             return response
                     else:
-                        logger.info('Request POST ' + url + ' failed with status code: ' + response.status)
+                        logger.debug('Request POST ' + url + ' failed with status code: ' + response.status)
         except aiohttp.ClientError as e:
-            logger.info('Request POST ' + url + ' failed with error: ' + str(e))
+            logger.debug('Request POST ' + url + ' failed with error: ' + str(e))
 
         # Increment the number of retries and wait for a while before retrying
         retries += 1
         await asyncio.sleep(1)
 
-    logger.info('Maximum number of retries reached. Request ' + url + ' failed.')
+    logger.debug('Maximum number of retries reached. Request ' + url + ' failed.')
     return None
 
 async def request_delete(url, unpack, headers=None, data=None, max_retries=float('inf')):
@@ -90,13 +90,13 @@ async def request_delete(url, unpack, headers=None, data=None, max_retries=float
                     else:
                         logger.info('Request DELETE ' + url + ' failed with status code: ' + response.status)
         except aiohttp.ClientError as e:
-            logger.info('Request DELETE ' + url + ' failed with error: ' + str(e))
+            logger.debug('Request DELETE ' + url + ' failed with error: ' + str(e))
 
         # Increment the number of retries and wait for a while before retrying
         retries += 1
         await asyncio.sleep(1)
 
-    logger.info('Maximum number of retries reached. Request ' + url + ' failed.')
+    logger.debug('Maximum number of retries reached. Request ' + url + ' failed.')
     return None
 
 
@@ -122,15 +122,15 @@ async def request_get(url, unpack, max_retries=float('inf'), headers=None):
                         else:
                             return response
                     else:
-                        logger.info('Request GET:' + url + ' failed with status code:' + str(response.status))
+                        logger.debug('Request GET:' + url + ' failed with status code:' + str(response.status))
         except aiohttp.ClientError as e:
-            logger.info('Request GET failed with error:' + str(e))
+            logger.debug('Request GET failed with error:' + str(e))
 
         # Increment the number of retries and wait for a while before retrying
         retries += 1
         await asyncio.sleep(1)
 
-    logger.info('Maximum number of retries reached. Request failed.')
+    logger.debug('Maximum number of retries reached. Request failed.')
     return None
 
 

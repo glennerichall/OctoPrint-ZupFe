@@ -362,7 +362,8 @@ class ZupfePlugin(
     # ------------------------------------------------------------------------------------------------------------------
 
     async def on_ready(self):
-        if self._printer_title is None or self._backend is None or not self._backend.is_initialized():
+        if (self._printer_title is None or self._printer_title.strip() == "" or
+            self._backend is None or not self._backend.is_initialized()):
             return
 
         # check the link status after backend has received its urls
@@ -387,14 +388,11 @@ class ZupfePlugin(
         frontend_url = self.get_from_settings('frontend_url', 'https://zupfe.velor.ca')
         self._id = self.get_from_settings('octoprint_id', None)
         self._api_key = self.get_from_settings('api_key', None)
-        self._logger.info("Using backend at " + backend_url + " " + frontend_url)
+        self._logger.debug("Using backend at " + backend_url + " " + frontend_url)
         self._backend = Backend(backend_url, frontend_url)
         self._frontend = Frontend(self._identifier, self._plugin_manager)
-        # self.messaging = Messaging(self.backend)
         self._default_webcam = octoprint.webcams.get_snapshot_webcam()
         self._printer_title = self.get_printer_title()
-        self._port = port
-        self._host = host
 
         async def wait_until_next_day():
             await asyncio.sleep(1 * 24 * 60 * 60)
@@ -403,9 +401,9 @@ class ZupfePlugin(
         async def take_snapshots_daily():
             while True:
                 try:
-                    self._logger.info('Taking a snapshot from the printer camera')
+                    self._logger.debug('Taking a snapshot from the printer camera')
                     snapshot = await self.take_snapshot()
-                    self._logger.info('Posting the snapshot to ZupFe')
+                    self._logger.debug('Posting the snapshot to ZupFe')
                     await self._backend.post_snapshot(snapshot['config'], snapshot['data'])
                 except Exception as e:
                     self._logger.error('Error while taking or sending snapshot ' + str(e))
@@ -413,8 +411,12 @@ class ZupfePlugin(
                 await wait_until_next_day()
 
         async def on_connect():
-            await self.on_ready()
-            self._frontend.emitBackendConnected()
+            self._logger.debug("Connected to websocket")
+            try:
+                await self.on_ready()
+                self._frontend.emitBackendConnected()
+            except Exception as e:
+                self._logger.error(str(e))
 
         async def init_backend():
             await self._backend.init()
@@ -422,11 +424,11 @@ class ZupfePlugin(
 
             linked = False
             if self._id is None:
-                self._logger.info('No octoid, asking for a new one')
+                self._logger.debug('No octoid, asking for a new one')
                 instance = await self._backend.new_octo_id()
                 self._id = instance['uuid']
                 self._api_key = instance['apiKey']
-                self._logger.info('Got a new octoid')
+                self._logger.debug('Got a new octoid')
                 self.save_to_settings_if_updated('octoprint_id', self._id)
                 self.save_to_settings_if_updated('api_key', self._api_key)
                 self.save_to_settings_if_updated('linked', False)
@@ -438,13 +440,16 @@ class ZupfePlugin(
             # take snapshot after backend has received its urls and id
             self._worker.run_thread_safe(take_snapshots_daily())
 
-            await self.on_ready()
+            try:
+                await self.on_ready()
 
-            self._logger.info('Connecting websocket to backend')
-            self._backend.connect_wss(on_message=self.on_message,
-                                      on_close=self._frontend.emitBackendDisconnected,
-                                      on_error=self._frontend.emitBackendDisconnected,
-                                      on_open=lambda: self._worker.run_thread_safe(on_connect()))
+                self._logger.debug('Connecting websocket to backend')
+                self._backend.connect_wss(on_message=self.on_message,
+                                          on_close=self._frontend.emitBackendDisconnected,
+                                          on_error=self._frontend.emitBackendDisconnected,
+                                          on_open=lambda: self._worker.run_thread_safe(on_connect()))
+            except Exception as e:
+                self._logger.error(str(e))
 
         self._worker.run_thread_safe(init_backend())
 
@@ -567,6 +572,7 @@ __plugin_name__ = "ZupFe For Octoprint"
 __plugin_pythoncompat__ = ">=3,<4"  # Only Python 3
 
 __plugin_privacypolicy__ = "https://zupfe.velor.ca/privacy.html"
+
 
 def __plugin_load__():
     global __plugin_implementation__

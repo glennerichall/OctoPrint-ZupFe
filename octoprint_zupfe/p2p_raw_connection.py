@@ -12,12 +12,10 @@ try:
 except ImportError as e:
     AIORTC_AVAILABLE = False
 
-
     # Define stub/mock implementations or set them to None
     class RTCPeerConnection:
         def __init__(self, *args, **kwargs):
             raise NotImplementedError("RTCPeerConnection is not available due to import error")
-
 
     class RTCSessionDescription:
         def __init__(self, *args, **kwargs):

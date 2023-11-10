@@ -120,10 +120,10 @@ class Backend:
         return self._ws is not None and self._ws.is_connected()
 
     async def init(self):
-        logger.info('Fetching api urls')
+        logger.debug('Fetching api urls')
         data = await request_get_json(self.backendUrl + '/api/version')
         self.urls = data['api']['urls']
-        logger.info('Found ' + str(len(self.urls)) + ' urls')
+        logger.debug('Found ' + str(len(self.urls)) + ' urls')
 
     def connect_wss(self, on_message, on_open=None, on_close=None, on_error=None):
         self._ws = WebSocketClient(self.backend_ws_url,
@@ -133,7 +133,7 @@ class Backend:
                                    on_open=on_open,
                                    on_error=on_error,
                                    on_close=on_close)
-        logger.info('Connecting to ' + self.backend_ws_url)
+        logger.debug('Connecting to ' + self.backend_ws_url)
         self._ws.connect()
         return self._ws
 
