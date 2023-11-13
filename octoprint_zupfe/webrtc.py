@@ -1,18 +1,19 @@
-import asyncio
-import json
 import json
 import logging
 from asyncio import Future
 
+logger = logging.getLogger("octoprint.plugins.zupfe.p2p")
+
 try:
     from aiortc import RTCPeerConnection, RTCSessionDescription
 
+    logger.debug("Loaded aiortc successfully")
     AIORTC_AVAILABLE = True
 
 except ImportError as e:
     AIORTC_AVAILABLE = False
+    logger.debug("Loading aiortc failed with error: " + str(e))
 
-    # Define stub/mock implementations or set them to None
     class RTCPeerConnection:
         def __init__(self, *args, **kwargs):
             raise NotImplementedError("RTCPeerConnection is not available due to import error")
@@ -24,12 +25,9 @@ except ImportError as e:
 from .constants import EVENT_REQUEST_STREAM
 from .request import create_reply, create_stream, create_rejection
 
+
 # logger = logging.getLogger('aiortc')
 # logger.setLevel(logging.DEBUG)
-
-
-logger = logging.getLogger("octoprint.plugins.zupfe.p2p")
-
 
 def get_p2p_reply(peer_connection):
     return {

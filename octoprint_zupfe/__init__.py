@@ -17,7 +17,7 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_OCTOP
     EVENT_REQUEST_DOWNLOAD_FILE, EVENT_REQUEST_SET_ACTIVE_FILE, EVENT_REQUEST_ABORT_PRINT, EVENT_REQUEST_PROGRESS, \
     EVENT_PRINTER_PRINT_DONE
 from .frontend import Frontend
-from .p2p_raw_connection import AIORTC_AVAILABLE, accept_p2p_offer, get_p2p_reply
+from .webrtc import AIORTC_AVAILABLE, accept_p2p_offer, get_p2p_reply
 from .request import request_get, request_get_binary, request_get_json, request_post_json
 from .worker import AsyncTaskWorker
 from .zupfe import Backend
@@ -43,6 +43,8 @@ class ZupfePlugin(
 
     def __init__(self):
         super().__init__()
+        self._host = None
+        self._port = None
         self._default_webcam = None
         self._backend = None
         self._frontend = None
@@ -55,6 +57,7 @@ class ZupfePlugin(
         self._worker = AsyncTaskWorker()
         self._p2ps = dict()
 
+
     # ------------------------------------------------------------------------------------------------------------------
     # BlueprintPlugin
     # ------------------------------------------------------------------------------------------------------------------
@@ -64,7 +67,7 @@ class ZupfePlugin(
         if not self._backend.is_connected() or self._backend.octo_id is None:
             return None
         self._worker.run_thread_safe(self._backend.unlink())
-        return None
+        return {}
 
     @octoprint.plugin.BlueprintPlugin.route("/connection/status", methods=["GET"])
     def get_connection_status(self):
@@ -197,16 +200,21 @@ class ZupfePlugin(
 
     def on_message(self, message, reply, reject):
         async def on_request_p2p():
+            self._logger.debug("Receiving webrtc offer")
             offer = message['offer']
-            # rtc_id = message['rtcId']
             if AIORTC_AVAILABLE:
                 try:
+                    self._logger.debug("Setting-up ICE connection")
                     p2p = await accept_p2p_offer(self.on_message, offer)
                     answer = get_p2p_reply(p2p)
-                    reply(answer)
+                    self._logger.debug("Replying webrtc answer")
+                    # reply(answer)
+                    reply(None)
                 except Exception as e:
+                    self._logger.debug("Unable top reply answer " + str(e))
                     reply(None)
             else:
+                self._logger.debug("Aiortc is unavailable, denying offer")
                 reply(None)
 
         async def on_linked():
@@ -338,8 +346,7 @@ class ZupfePlugin(
     def save_to_settings_if_updated(self, name, value):
         cur_value = self.get_from_settings(name, None)
         if cur_value is None or cur_value != value:
-            self._logger.info(
-                "Value " + str(name) + " has changed so we are updating the value in settings and saving.")
+            self._logger.debug("Value '" + str(name) + "' changed, updating settings")
             self._settings.set([name], value, force=True)
             self._settings.save(force=True)
 
@@ -393,6 +400,8 @@ class ZupfePlugin(
         self._frontend = Frontend(self._identifier, self._plugin_manager)
         self._default_webcam = octoprint.webcams.get_snapshot_webcam()
         self._printer_title = self.get_printer_title()
+        self._port = port
+        self._host = host
 
         async def wait_until_next_day():
             await asyncio.sleep(1 * 24 * 60 * 60)
@@ -462,7 +471,8 @@ class ZupfePlugin(
             # 'initialized': self.backend.isInitialized(),
             # 'add_printer_url': self.backend.get_add_printer_url(self.id),
             # 'remove_printer_url': self.backend.get_remove_printer_url(self.id),
-            'frontend_url': self.get_from_settings('frontend_url', 'https://zupfe.velor.ca')
+            'frontend_url': self.get_from_settings('frontend_url', 'https://zupfe.velor.ca'),
+            'api_key': self.get_from_settings('api_key', None)
         }
 
     def get_assets(self):

@@ -30,6 +30,7 @@
     </div>
     <div class="unlinked">
         <form data-bind="attr: {action: urls()[URL_PRINTER_LINK] }"  method="POST" target="_blank">
+            <input type="hidden" name="apiKey" value="{{ plugin_zupfe_api_key }}"/>
             <input class="btn btn-primary btn-complete"
                    id="settings-zupfe-btn-complete"
                    data-bind="attr: { disabled:  !backend_connected() || !backend_initialized() }"
