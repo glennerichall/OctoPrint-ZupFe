@@ -208,8 +208,7 @@ class ZupfePlugin(
                     p2p = await accept_p2p_offer(self.on_message, offer)
                     answer = get_p2p_reply(p2p)
                     self._logger.debug("Replying webrtc answer")
-                    # reply(answer)
-                    reply(None)
+                    reply(answer)
                 except Exception as e:
                     self._logger.debug("Unable top reply answer " + str(e))
                     reply(None)
