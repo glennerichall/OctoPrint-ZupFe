@@ -7,7 +7,6 @@ import aiohttp
 from octoprint_zupfe.constants import (EVENT_MESSAGE_RESPONSE, EVENT_STREAM_CONTENT,
                                        EVENT_STREAM_END, EVENT_STREAM_INFO, EVENT_MESSAGE_FAILURE)
 
-
 logger = logging.getLogger("octoprint.plugins.zupfe.backend")
 
 
@@ -31,7 +30,8 @@ async def request_put(url, unpack, headers=None, data=None, max_retries=float('i
                         else:
                             return response
                     else:
-                        logger.error('Request PUT ' + url + ' failed with status code:', response.status)
+                        logger.error('Request PUT ' + url + ' failed with status code:' + str(response.status) +
+                                     await response.text())
         except aiohttp.ClientError as e:
             logger.error('Request PUT ' + url + ' failed with error:', str(e))
 
@@ -43,14 +43,22 @@ async def request_put(url, unpack, headers=None, data=None, max_retries=float('i
     return None
 
 
-async def request_post_json(url, headers=None, data=None, max_retries=float('inf')):
-    return await request_post(url, lambda response: response.json(), headers, data, max_retries=max_retries)
+async def request_post_json(url, headers=None, data=None, max_retries=float('inf'), mute=False):
+    async def unpack(response):
+        try:
+            return await response.json()
+        except Exception as e:
+            logger.error("Unable to unpack json from response " + str(e))
+
+    return await request_post(url, unpack, headers, data, max_retries=max_retries, mute=mute)
 
 
-async def request_post(url, unpack, headers=None, data=None, max_retries=float('inf')):
+async def request_post(url, unpack, headers=None, data=None, max_retries=float('inf'), mute=False):
     retries = 0
     ok_status = False
-    logger.debug('POST ' + url)
+    if not mute:
+        logger.debug('POST ' + url)
+
     while retries < max_retries and not ok_status:
         try:
             async with aiohttp.ClientSession() as session:
@@ -62,7 +70,8 @@ async def request_post(url, unpack, headers=None, data=None, max_retries=float('
                         else:
                             return response
                     else:
-                        logger.debug('Request POST ' + url + ' failed with status code: ' + response.status)
+                        logger.debug('Request POST ' + url + ' failed with status code: ' + str(response.status) +
+                                     await response.text())
         except aiohttp.ClientError as e:
             logger.debug('Request POST ' + url + ' failed with error: ' + str(e))
 
@@ -72,6 +81,7 @@ async def request_post(url, unpack, headers=None, data=None, max_retries=float('
 
     logger.debug('Maximum number of retries reached. Request ' + url + ' failed.')
     return None
+
 
 async def request_delete(url, unpack, headers=None, data=None, max_retries=float('inf')):
     retries = 0
@@ -88,7 +98,8 @@ async def request_delete(url, unpack, headers=None, data=None, max_retries=float
                         else:
                             return response
                     else:
-                        logger.info('Request DELETE ' + url + ' failed with status code: ' + response.status)
+                        logger.info('Request DELETE ' + url + ' failed with status code: ' + str(response.status) +
+                                    await response.text())
         except aiohttp.ClientError as e:
             logger.debug('Request DELETE ' + url + ' failed with error: ' + str(e))
 
@@ -122,7 +133,8 @@ async def request_get(url, unpack, max_retries=float('inf'), headers=None):
                         else:
                             return response
                     else:
-                        logger.debug('Request GET:' + url + ' failed with status code:' + str(response.status))
+                        logger.debug('Request GET:' + url + ' failed with status code:' + str(response.status) +
+                                     await response.text())
         except aiohttp.ClientError as e:
             logger.debug('Request GET failed with error:' + str(e))
 

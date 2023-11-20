@@ -29,14 +29,14 @@ from .request import create_reply, create_stream, create_rejection
 # logger = logging.getLogger('aiortc')
 # logger.setLevel(logging.DEBUG)
 
-def get_p2p_reply(peer_connection):
+def get_webrtc_reply(peer_connection):
     return {
         "type": peer_connection.localDescription.type,
         "sdp": peer_connection.localDescription.sdp
     }
 
 
-async def accept_p2p_offer(on_message, offer):
+async def accept_webrtc_offer(on_message, offer):
     peer_connection = RTCPeerConnection()
     remote_description = RTCSessionDescription(sdp=offer['sdp'], type=offer['type'])
     await peer_connection.setRemoteDescription(remote_description)

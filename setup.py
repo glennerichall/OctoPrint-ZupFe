@@ -61,7 +61,7 @@ plugin_ignored_packages = []
 # you would like to support Python 2 as well as 3 (not recommended).
 additional_setup_parameters = {"python_requires": ">=3.7,<4"}
 
-plugin_requires = ["websocket_client>=1.5.1", "aiohttp>=3.8.4", "aiortc>=1.3.0"]
+plugin_requires = ["websocket_client>=1.5.1", "aiohttp>=3.8.4", "aiortc>=1.5.0"]
 
 ########################################################################################################################
 
