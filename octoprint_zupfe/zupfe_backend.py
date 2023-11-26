@@ -13,7 +13,7 @@ from urllib.parse import urlencode
 from .request import request_get_json, request_post_json, request_put, create_reply, create_stream, request_post, \
     request_delete, create_rejection
 
-logger = logging.getLogger("PRINTERS.plugins.zupfe.backend")
+logger = logging.getLogger("octoprint.plugins.zupfe.backend")
 
 
 class WebSocketClient:

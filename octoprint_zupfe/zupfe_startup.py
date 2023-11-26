@@ -62,10 +62,16 @@ class ZupfeStartup(octoprint.plugin.StartupPlugin):
                 self.save_to_settings_if_updated('octoprint_id', self._id)
                 self.save_to_settings_if_updated('api_key', self._api_key)
                 self.save_to_settings_if_updated('linked', False)
+
             else:
                 # FIXME if the octoid was cleaned from the database ie octoprint has never connected for a long time
                 #  then require a new octoid
                 self.backend.set_octo_id(self._id, self._api_key)
+
+            # must transmit api key because:
+            # jinja may not have access to value when rendering wizard
+            # self.settings.settings.plugins.zupfe.api_key in zupfe.js does not seem to get settings everytime
+            self.frontend.emitApiKey(self._api_key)
 
             # take snapshot after backend has received its urls and id
             self.worker.run_thread_safe(take_snapshots_daily(self._default_webcam, self.backend))

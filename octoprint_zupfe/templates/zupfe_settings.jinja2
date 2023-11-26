@@ -1,6 +1,6 @@
 <script type="text/javascript" src="/plugin/zupfe/static/js/constants.js"></script>
 
-<div id="zupfe-settings-content" data-bind="css: { 'offline' : !backend_connected() || !backend_initialized() }">
+<div id="zupfe-settings-content" data-bind="css: { 'offline' : !backend_connected() || !backend_initialized() || !api_key() }">
 
     <div class="wizard-header">
         <img class="zupfe-logo" src="/plugin/zupfe/static/img/logo.svg"/>
@@ -23,14 +23,14 @@
         <div>
             <button class="btn btn-primary btn-complete"
                     id="settings-zupfe-btn-unlink"
-                    data-bind="click: unlinkPrinter, attr: { disabled:  !backend_connected() || !backend_initialized() }">
+                    data-bind="click: unlinkPrinter, attr: { disabled:  !backend_connected() || !backend_initialized() || !api_key() }">
                 Unlink
             </button>
         </div>
     </div>
     <div class="unlinked">
         <form data-bind="attr: {action: urls()[URL_PRINTER_LINK] }"  method="POST" target="_blank">
-            <input type="hidden" name="apiKey" value="{{ plugin_zupfe_api_key }}"/>
+            <input type="hidden" name="apiKey" data-bind="attr: { value:  api_key() }"/>
             <input class="btn btn-primary btn-complete"
                    id="settings-zupfe-btn-complete"
                    data-bind="attr: { disabled:  !backend_connected() || !backend_initialized() }"

@@ -1,5 +1,8 @@
 <script type="text/javascript" src="/plugin/zupfe/static/js/constants.js"></script>
-<div id="zupfe-wizard-content" data-bind="css: { 'offline' : !backend_connected() || !backend_initialized() }">
+<script type="text/javascript">
+    console.log("{{ plugin_zupfe_api_key }}")
+</script>
+<div id="zupfe-wizard-content" data-bind="css: { 'offline' : !backend_connected() || !backend_initialized() || !api_key() }">
 
     <div class="wizard-header">
         <img class="zupfe-logo" src="/plugin/zupfe/static/img/logo.svg"/>
@@ -18,11 +21,11 @@
         OctoPrint-Zupfe setup up and running in no time!
     </p>
 
-    <form data-bind="attr: {action: urls()[URL_PRINTER_LINK] }" method="POST" target="_blank">
-        <input type="hidden" name="apiKey" value="{{ plugin_zupfe_api_key }}"/>
+    <form data-bind="attr: { action: urls()[URL_PRINTER_LINK] }" method="POST" target="_blank">
+        <input type="hidden" name="apiKey" data-bind="attr: { value:  api_key() }"/>
         <input class="btn btn-primary btn-complete"
                id="wizard-zupfe-btn-complete"
-               data-bind="attr: { disabled:  !backend_connected() || !backend_initialized() }"
+               data-bind="attr: { disabled:  !backend_connected() || !backend_initialized() || !api_key() }"
                type="submit" value="Complete Your Setup Now!"/>
     </form>
 
@@ -30,5 +33,8 @@
     <p>
         You can skip now and complete your setup at anytime in the OctoPrint settings under the ZupFe For Octoprint tab.
     </p>
+
+
+
 
 </div>

@@ -9,7 +9,7 @@ class ZupfeWizard(octoprint.plugin.WizardPlugin):
 
     # Increment this if we need to pop the wizard again.
     def get_wizard_version(self):
-        return 3
+        return 5
 
     def get_wizard_details(self):
         return {}

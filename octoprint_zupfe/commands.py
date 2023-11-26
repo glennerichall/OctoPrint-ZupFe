@@ -8,7 +8,7 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_REQUE
     EVENT_REQUEST_DOWNLOAD_FILE, EVENT_REQUEST_ABORT_PRINT, EVENT_REQUEST_PROGRESS, EVENT_REQUEST_POWER_ON, \
     EVENT_REQUEST_POWER_OFF, EVENT_REQUEST_CONNECTION
 
-logger = logging.getLogger("PRINTERS.plugins.zupfe.commands")
+logger = logging.getLogger("octoprint.plugins.zupfe.commands")
 
 
 def handle_message(plugin, message, reply, reject):

@@ -7,7 +7,9 @@ class ZupfeSettings(octoprint.plugin.SettingsPlugin):
         return {
             'backend_url': 'https://zupfe.velor.ca',
             'frontend_url': 'https://zupfe.velor.ca',
-            'linked': False
+            'linked': False,
+            'api_key': None,
+            'octoprint_id': None
         }
 
     def save_to_settings_if_updated(self, name, value):

@@ -28,10 +28,28 @@ $(function () {
         self.all_bound = ko.observable();
         self.urls = ko.observable();
 
+        // Use knockout since jinja will set staticly the api key
+        // but since getting the api key from zupfe is done async
+        // maybe the wizard will be shown before the api key is obtained
+        self.api_key = ko.observable();
+
         self.backend_initialized(false);
         self.backend_connected(false);
         self.all_bound(false);
+        self.api_key(false);
         self.urls({});
+
+        // let pollTimeoutId = setInterval(() => {
+        //     console.log(self.settings.settings.plugins.zupfe)
+        //     if(self.settings.settings.plugins.zupfe.api_key) {
+        //         let api_key = self.settings.settings.plugins.zupfe.api_key();
+        //         console.log('APIKEY', api_key)
+        //         if (api_key) {
+        //             clearInterval(pollTimeoutId);
+        //             self.api_key(api_key);
+        //         }
+        //     }
+        // }, 300);
 
 
         async function fetch_until_ok(url, options = {}) {
@@ -78,7 +96,13 @@ $(function () {
             let settingsRoot = $("#settings_plugin_zupfe");
             let navbarRoot = $("#navbar_plugin_zupfe");
 
+            console.log('Message from backend ', message);
+
             switch (message.type) {
+                case EVENT_OCTOPRINT_APIKEY_RECEIVED:
+                    self.api_key(message.api_key)
+                    break;
+
                 case EVENT_PRINTER_LINKED:
                     self.linked = true;
                     self.wizard.finishWizard();
@@ -137,11 +161,11 @@ $(function () {
             //     })
         }
 
-
         self.onAllBound = () => {
             self.all_bound(true);
             let navbarRoot = $("#navbar_plugin_zupfe");
             self.linked = self.settings.settings.plugins.zupfe.linked();
+            self.api_key(self.settings.settings.plugins.zupfe.api_key());
             if (self.linked) {
                 navbarRoot.addClass("zupfe-linked")
             }

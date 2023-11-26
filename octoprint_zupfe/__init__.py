@@ -50,6 +50,9 @@ class ZupfePlugin(
         self._id = None
         self._api_key = None
         self._printer_title = None
+        self._print_line = None
+        self._print_progress = None
+        self._file_pos = None
         self.worker = AsyncTaskWorker()
         self.backend = None
         self.frontend = None
