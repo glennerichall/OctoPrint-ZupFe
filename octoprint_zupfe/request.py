@@ -122,7 +122,7 @@ async def request_get_binary(url, max_retries=float('inf'), headers=None):
 async def request_get(url, unpack, max_retries=float('inf'), headers=None):
     retries = 0
     ok_status = False
-    while retries < max_retries and not ok_status:
+    while retries <= max_retries and not ok_status:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, ssl=False, headers=headers) as response:
@@ -134,7 +134,36 @@ async def request_get(url, unpack, max_retries=float('inf'), headers=None):
                             return response
                     else:
                         logger.debug('Request GET:' + url + ' failed with status code:' + str(response.status) +
-                                     await response.text())
+                                     ' ' + await response.text())
+        except aiohttp.ClientError as e:
+            logger.debug('Request GET failed with error:' + str(e))
+
+        # Increment the number of retries and wait for a while before retrying
+        retries += 1
+        await asyncio.sleep(1)
+
+    logger.debug('Maximum number of retries reached. Request failed.')
+    return None
+
+
+async def request_get(url, unpack, max_retries=float('inf'), headers=None):
+    retries = 0
+    ok_status = False
+    while retries <= max_retries and not ok_status:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, ssl=False, headers=headers) as response:
+                    if response.ok:
+                        ok_status = True
+                        if unpack is not None:
+                            return await unpack(response)
+                        else:
+                            return response
+                    else:
+                        logger.debug('Request GET:' + url + ' failed with status code:' + str(response.status) +
+                                     ' ' + await response.text())
+                        return response
+
         except aiohttp.ClientError as e:
             logger.debug('Request GET failed with error:' + str(e))
 

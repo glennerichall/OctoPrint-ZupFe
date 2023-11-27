@@ -49,24 +49,29 @@ class ZupfeStartup(octoprint.plugin.StartupPlugin):
                 self._logger.error(str(e))
 
         async def init_backend():
-            await self.backend.init()
-            self.frontend.emitInitialized()
+            uuid_valid = False
+            while not uuid_valid:
+                await self.backend.init()
+                self.frontend.emitInitialized()
 
-            linked = False
-            if self._id is None:
-                self._logger.debug('No octoid, asking for a new one')
-                instance = await self.backend.new_octo_id()
-                self._id = instance['uuid']
-                self._api_key = instance['apiKey']
-                self._logger.debug('Got a new octoid')
-                self.save_to_settings_if_updated('octoprint_id', self._id)
-                self.save_to_settings_if_updated('api_key', self._api_key)
-                self.save_to_settings_if_updated('linked', False)
+                linked = False
+                if self._id is None:
+                    self._logger.debug('No octoid, asking for a new one')
+                    instance = await self.backend.new_octo_id()
+                    self._id = instance['uuid']
+                    self._api_key = instance['apiKey']
+                    self._logger.debug('Got a new octoid')
+                    self.save_to_settings_if_updated('octoprint_id', self._id)
+                    self.save_to_settings_if_updated('api_key', self._api_key)
+                    self.save_to_settings_if_updated('linked', False)
+                else:
+                    self.backend.set_octo_id(self._id, self._api_key)
 
-            else:
-                # FIXME if the octoid was cleaned from the database ie octoprint has never connected for a long time
-                #  then require a new octoid
-                self.backend.set_octo_id(self._id, self._api_key)
+                uuid_valid = await self.backend.check_uuid()
+                if not uuid_valid:
+                    self._logger.debug('Octoid not found on backend or api key is invalid, flushing octoid')
+                    self._id = None
+                    self._api_key = None
 
             # must transmit api key because:
             # jinja may not have access to value when rendering wizard

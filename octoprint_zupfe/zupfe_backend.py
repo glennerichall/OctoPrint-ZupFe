@@ -1,5 +1,8 @@
 import logging
 import time
+
+from aiohttp import ClientResponse
+
 from .constants import URL_PRINTER_TITLE, \
     URL_PRINTER_STATUS, EVENT_REQUEST_STREAM, \
     URL_PRINTER_EVENT, URL_PRINTER_LINK, \
@@ -165,11 +168,22 @@ class Backend:
     async def set_printer_title(self, title, max_retries=1):
         data = {'title': title}
         headers = {"X-Api-Key": self.api_key}
-        await request_post_json(self.urls[URL_PRINTER_TITLE], headers=headers, data=data, max_retries=max_retries)
+        await request_post_json(self.urls[URL_PRINTER_TITLE],
+                                headers=headers,
+                                data=data,
+                                max_retries=max_retries)
 
-    async def get_link_status(self):
+    async def check_uuid(self):
+        link_status = await self.get_link_status()
+        if isinstance(link_status, ClientResponse):
+            return not (link_status.status == 404 or link_status.status == 401)
+        return True
+
+    async def get_link_status(self, max_retries=float('inf')):
         headers = {"X-Api-Key": self.api_key}
-        return await request_get_json(self.urls[URL_PRINTER_STATUS], headers=headers)
+        return await request_get_json(self.urls[URL_PRINTER_STATUS],
+                                      headers=headers,
+                                      max_retries=max_retries)
 
     async def unlink(self):
         headers = {"X-Api-Key": self.api_key}

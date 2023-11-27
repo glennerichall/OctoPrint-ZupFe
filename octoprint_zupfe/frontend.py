@@ -13,7 +13,6 @@ class Frontend:
         self._identifier = identifier
 
     def emitApiKey(self, api_key):
-        logger.debug('tabarnack de kalis')
         self._plugin_manager.send_plugin_message(self._identifier,
                                                  dict(
                                                      api_key=api_key,
