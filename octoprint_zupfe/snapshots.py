@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from .request import request_get, unpack_binary
+from .request import request_get
 
 logger = logging.getLogger("PRINTERS.plugins.zupfe.snapshots")
 
@@ -16,7 +16,7 @@ async def take_snapshot(webcam):
         snapshot_url = webcam.config.compat.snapshot
         snapshot_config = webcam.config
         response = await request_get(snapshot_url, max_retries=1)
-        data = unpack_binary(response)
+        data = response.read()
         config = {
             'flip_h': snapshot_config.flipH,
             'flip_v': snapshot_config.flipV,
@@ -31,13 +31,13 @@ async def take_snapshot(webcam):
     return None
 
 
-async def take_snapshots_daily(webcam, backend):
+async def take_snapshots_daily(webcam, actions):
     while True:
         try:
             logger.debug('Taking a snapshot from the printer camera')
             snapshot = await take_snapshot(webcam)
             logger.debug('Posting the snapshot to ZupFe')
-            await backend.post_snapshot(snapshot['config'], snapshot['data'])
+            await actions.post_snapshot(snapshot['config'], snapshot['data'])
         except Exception as e:
             logger.error('Error while taking or sending snapshot ' + str(e))
 

@@ -1,6 +1,8 @@
 import octoprint
 
 from . import Backend, Frontend, take_snapshots_daily
+from .backend_actions import BackendActions
+from .power_state_poll_loop import start_power_state_poll_loop
 
 
 class ZupfeStartup(octoprint.plugin.StartupPlugin):
@@ -10,7 +12,7 @@ class ZupfeStartup(octoprint.plugin.StartupPlugin):
 
         # check the link status after backend has received its urls
         self._logger.debug('Getting link status of current printer')
-        link_status = await self.backend.get_link_status()
+        link_status = await self.actions.get_link_status()
         self._logger.debug('Status is ' + str(link_status))
 
         linked = link_status['status'] == 'linked'
@@ -20,18 +22,19 @@ class ZupfeStartup(octoprint.plugin.StartupPlugin):
         if link_status['name'] is None or link_status['name'] != self._printer_title:
             self._logger.info(
                 'Printer name changed from ' + str(link_status['name']) + ' to ' + str(self._printer_title))
-            await self.backend.set_printer_title(self._printer_title)
+            await self.actions.set_printer_title(self._printer_title)
 
     def on_after_startup(self):
-        self.worker.run_thread_safe(self.power_state_poll_loop())
+        self.worker.run_thread_safe(start_power_state_poll_loop(self.printer(), self.actions))
         self._logger.info("Hello World from ZupFe!")
 
     def on_startup(self, host, port):
         backend_url = self.get_from_settings('backend_url', 'https://zupfe.velor.ca')
         frontend_url = self.get_from_settings('frontend_url', 'https://zupfe.velor.ca')
+        self._logger.debug("Using backend at " + backend_url)
+        self._logger.debug("Using frontend at " + frontend_url)
         self._id = self.get_from_settings('octoprint_id', None)
         self._api_key = self.get_from_settings('api_key', None)
-        self._logger.debug("Using backend at " + backend_url + " " + frontend_url)
         self._default_webcam = octoprint.webcams.get_snapshot_webcam()
         self._printer_title = self.get_printer_title()
         self._port = port
@@ -39,6 +42,7 @@ class ZupfeStartup(octoprint.plugin.StartupPlugin):
 
         self.backend = Backend(backend_url, frontend_url)
         self.frontend = Frontend(self._identifier, self._plugin_manager)
+        self.actions = BackendActions(self.backend)
 
         async def on_connect():
             self._logger.debug("Connected to websocket")
@@ -79,7 +83,7 @@ class ZupfeStartup(octoprint.plugin.StartupPlugin):
             self.frontend.emitApiKey(self._api_key)
 
             # take snapshot after backend has received its urls and id
-            self.worker.run_thread_safe(take_snapshots_daily(self._default_webcam, self.backend))
+            self.worker.run_thread_safe(take_snapshots_daily(self._default_webcam, self.actions))
 
             try:
                 await self.on_ready()

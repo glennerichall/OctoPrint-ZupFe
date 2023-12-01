@@ -2,6 +2,8 @@ import flask
 import octoprint
 from flask import jsonify
 
+from octoprint_zupfe.backend_actions import BackendActions
+
 
 class ZupfeApiPlugin(octoprint.plugin.BlueprintPlugin):
 
@@ -13,7 +15,7 @@ class ZupfeApiPlugin(octoprint.plugin.BlueprintPlugin):
     def delete_link(self):
         if not self.backend.is_connected() or self.backend.octo_id is None:
             return None
-        self.worker.run_thread_safe(self.backend.unlink())
+        self.worker.run_thread_safe(self.actions.unlink())
         return {}
 
     @octoprint.plugin.BlueprintPlugin.route("/connection/status", methods=["GET"])

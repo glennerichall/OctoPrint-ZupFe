@@ -34,3 +34,10 @@ class ZupfeSettings(octoprint.plugin.SettingsPlugin):
         if value is None:
             return default
         return value
+
+    def get_printer_title(self):
+        # Get the appearance settings
+        appearance_settings = self._settings.global_get(['appearance'])
+
+        # Get the printer title from the appearance settings
+        return appearance_settings.get('name', 'Default Printer Title')

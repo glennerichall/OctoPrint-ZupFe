@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import octoprint.plugin
 
 from .FileObject import FileObject
+from .api import ApiBase
 from .commands import handle_message
 from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_OCTOPRINT_SHOW_WIZARD, \
     EVENT_REQUEST_GET_FILE_LIST, EVENT_RTC_OFFER, EVENT_REQUEST_STREAM, \
@@ -11,6 +12,7 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_OCTOP
     EVENT_PRINTER_PAUSED, EVENT_PRINTER_CANCELED, EVENT_PRINTER_OPERATIONAL, EVENT_REQUEST_PRINT_ACTIVE_FILE, \
     EVENT_REQUEST_DOWNLOAD_FILE, EVENT_REQUEST_SET_ACTIVE_FILE, EVENT_REQUEST_ABORT_PRINT, EVENT_REQUEST_PROGRESS, \
     EVENT_PRINTER_PRINT_DONE, EVENT_PRINTER_POWER_UP, EVENT_PRINTER_POWER_DOWN
+from .file_manager import FileManager
 from .frontend import Frontend
 from .request import request_get
 from .snapshots import take_snapshots_daily
@@ -19,9 +21,8 @@ from .worker import AsyncTaskWorker
 from .zupfe_api import ZupfeApiPlugin
 from .backend import Backend
 from .zupfe_events import ZupfeEvents
-from .zupfe_printer import ZupfePrinter
+from .printer import Printer
 from .zupfe_progress import ZupfeProgress
-from .zupfe_request import ZupfeRequest
 from .zupfe_settings import ZupfeSettings
 from .zupfe_startup import ZupfeStartup
 from .zupfe_state import ZupfeState
@@ -31,8 +32,6 @@ from .zupfe_wizard import ZupfeWizard
 
 class ZupfePlugin(
     ZupfeApiPlugin,
-    ZupfeState,
-    ZupfePrinter,
     ZupfeSettings,
     ZupfeWizard,
     ZupfeProgress,
@@ -55,17 +54,15 @@ class ZupfePlugin(
         self._file_pos = None
         self.worker = AsyncTaskWorker()
         self.backend = None
+        self.actions = None
         self.frontend = None
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # Others
-    # ------------------------------------------------------------------------------------------------------------------
+        self.api = ApiBase(self)
 
     def file_manager(self):
-        return self._file_manager
+        return FileManager(self._file_manager, self.api, self._id)
 
     def printer(self):
-        return self._printer
+        return Printer(self._printer, self.api)
 
     def on_message(self, message, reply, reject):
         handle_message(self, message, reply, reject)

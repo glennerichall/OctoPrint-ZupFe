@@ -10,104 +10,78 @@ from octoprint_zupfe.constants import (EVENT_MESSAGE_RESPONSE, EVENT_STREAM_CONT
 logger = logging.getLogger("octoprint.plugins.zupfe.backend")
 
 
-async def unpack_json(response):
-    try:
-        return await response.json()
-    except Exception as e:
-        logger.error("Unable to unpack json from response " + str(e))
+class ResponseWrapper:
+    def __init__(self, session, response):
+        self._session = session
+        self._response = response
+
+    async def close(self):
+        await self._response.release()
+        await self._session.close()
+
+    async def json(self):
+        try:
+            return await self._response.json()
+        finally:
+            await self.close()
+
+    async def read(self):
+        try:
+            return await self._response.read()
+        finally:
+            await self.close()
+
+    def status(self):
+        return self._response.status
 
 
-async def unpack_binary(response):
-    try:
-        return await response.read()
-    except Exception as e:
-        logger.error("Unable to unpack binary data from response " + str(e))
-
-
-async def request_put(url, headers=None, data=None, max_retries=float('inf')):
+async def request(url,
+                  method,
+                  headers=None,
+                  data=None,
+                  max_retries=float('inf')):
     retries = 0
     ok_status = False
-    logger.debug('PUT ' + url)
+    logger.debug(f'{method}: {url}')
 
     while retries < max_retries and not ok_status:
+        session = aiohttp.ClientSession()
+
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.put(url, data=data, headers=headers, ssl=False) as response:
-                    return response
+            response = await session.request(method, url, data=data, headers=headers, ssl=False)
+            return ResponseWrapper(session, response)
 
         except aiohttp.ClientError as e:
-            logger.error('Request PUT ' + url + ' failed with error:', str(e))
+            logger.error(f'Request {method} to {url} failed with error: {e}')
+            retries += 1
+            await asyncio.sleep(1)
 
-        # Increment the number of retries and wait for a while before retrying
-        retries += 1
-        await asyncio.sleep(1)
-
-    logger.error('Maximum number of retries reached. Request ' + url + ' failed.')
+    logger.error(f'Maximum number of retries ({max_retries}) reached. Request {method}: {url} failed.')
     return None
 
 
-async def request_post(url, headers=None, data=None, max_retries=float('inf'), mute=False):
-    retries = 0
-    ok_status = False
-    if not mute:
-        logger.debug('POST ' + url)
-
-    while retries < max_retries and not ok_status:
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, headers=headers, data=data, ssl=False) as response:
-                    return response
-
-        except aiohttp.ClientError as e:
-            logger.debug('Request POST ' + url + ' failed with error: ' + str(e))
-
-        # Increment the number of retries and wait for a while before retrying
-        retries += 1
-        await asyncio.sleep(1)
-
-    logger.debug('Maximum number of retries reached. Request ' + url + ' failed.')
-    return None
+async def request_put(url, headers=None,
+                      data=None, max_retries=float('inf')):
+    return await request('PUT', url, headers=headers,
+                         data=data, max_retries=max_retries)
 
 
-async def request_delete(url, headers=None, data=None, max_retries=float('inf')):
-    retries = 0
-    ok_status = False
-    logger.debug('DELETE ' + url)
-    while retries < max_retries and not ok_status:
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.delete(url, headers=headers, data=data, ssl=False) as response:
-                    return response
-
-        except aiohttp.ClientError as e:
-            logger.debug('Request DELETE ' + url + ' failed with error: ' + str(e))
-
-        # Increment the number of retries and wait for a while before retrying
-        retries += 1
-        await asyncio.sleep(1)
-
-    logger.debug('Maximum number of retries reached. Request ' + url + ' failed.')
-    return None
+async def request_post(url, headers=None,
+                       data=None, max_retries=float('inf')):
+    return await request('POST', url, headers=headers,
+                         data=data, max_retries=max_retries)
 
 
-async def request_get(url, max_retries=float('inf'), headers=None):
-    retries = 0
-    ok_status = False
-    while retries <= max_retries and not ok_status:
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, ssl=False, headers=headers) as response:
-                    return response
+async def request_get(url, headers=None,
+                      data=None, max_retries=float('inf')):
+    return await request('GET', url, headers=headers,
+                         data=data, max_retries=max_retries)
 
-        except aiohttp.ClientError as e:
-            logger.debug('Request GET failed with error:' + str(e))
 
-        # Increment the number of retries and wait for a while before retrying
-        retries += 1
-        await asyncio.sleep(1)
-
-    logger.debug('Maximum number of retries reached. Request failed.')
-    return None
+async def request_delete(url, headers=None,
+                         data=None, max_retries=float('inf')):
+    return await request('DELETE', url, headers=headers,
+                         data=data, max_retries=max_retries)
 
 
 def create_reply(transport, message):
