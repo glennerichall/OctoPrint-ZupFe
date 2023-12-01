@@ -10,11 +10,21 @@ from octoprint_zupfe.constants import (EVENT_MESSAGE_RESPONSE, EVENT_STREAM_CONT
 logger = logging.getLogger("octoprint.plugins.zupfe.backend")
 
 
-async def request_put_json(url, headers=None, data=None, max_retries=float('inf')):
-    return await request_put(url, lambda response: response.json(), headers, data, max_retries=max_retries)
+async def unpack_json(response):
+    try:
+        return await response.json()
+    except Exception as e:
+        logger.error("Unable to unpack json from response " + str(e))
 
 
-async def request_put(url, unpack, headers=None, data=None, max_retries=float('inf')):
+async def unpack_binary(response):
+    try:
+        return await response.read()
+    except Exception as e:
+        logger.error("Unable to unpack binary data from response " + str(e))
+
+
+async def request_put(url, headers=None, data=None, max_retries=float('inf')):
     retries = 0
     ok_status = False
     logger.debug('PUT ' + url)
@@ -23,15 +33,8 @@ async def request_put(url, unpack, headers=None, data=None, max_retries=float('i
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.put(url, data=data, headers=headers, ssl=False) as response:
-                    if response.ok:
-                        ok_status = True
-                        if unpack is not None:
-                            return await unpack(response)
-                        else:
-                            return response
-                    else:
-                        logger.error('Request PUT ' + url + ' failed with status code:' + str(response.status) +
-                                     await response.text())
+                    return response
+
         except aiohttp.ClientError as e:
             logger.error('Request PUT ' + url + ' failed with error:', str(e))
 
@@ -43,17 +46,7 @@ async def request_put(url, unpack, headers=None, data=None, max_retries=float('i
     return None
 
 
-async def request_post_json(url, headers=None, data=None, max_retries=float('inf'), mute=False):
-    async def unpack(response):
-        try:
-            return await response.json()
-        except Exception as e:
-            logger.error("Unable to unpack json from response " + str(e))
-
-    return await request_post(url, unpack, headers, data, max_retries=max_retries, mute=mute)
-
-
-async def request_post(url, unpack, headers=None, data=None, max_retries=float('inf'), mute=False):
+async def request_post(url, headers=None, data=None, max_retries=float('inf'), mute=False):
     retries = 0
     ok_status = False
     if not mute:
@@ -63,15 +56,8 @@ async def request_post(url, unpack, headers=None, data=None, max_retries=float('
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, headers=headers, data=data, ssl=False) as response:
-                    if response.ok:
-                        ok_status = True
-                        if unpack is not None:
-                            return await unpack(response)
-                        else:
-                            return response
-                    else:
-                        logger.debug('Request POST ' + url + ' failed with status code: ' + str(response.status) +
-                                     await response.text())
+                    return response
+
         except aiohttp.ClientError as e:
             logger.debug('Request POST ' + url + ' failed with error: ' + str(e))
 
@@ -83,7 +69,7 @@ async def request_post(url, unpack, headers=None, data=None, max_retries=float('
     return None
 
 
-async def request_delete(url, unpack, headers=None, data=None, max_retries=float('inf')):
+async def request_delete(url, headers=None, data=None, max_retries=float('inf')):
     retries = 0
     ok_status = False
     logger.debug('DELETE ' + url)
@@ -91,15 +77,8 @@ async def request_delete(url, unpack, headers=None, data=None, max_retries=float
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.delete(url, headers=headers, data=data, ssl=False) as response:
-                    if response.ok:
-                        ok_status = True
-                        if unpack is not None:
-                            return await unpack(response)
-                        else:
-                            return response
-                    else:
-                        logger.info('Request DELETE ' + url + ' failed with status code: ' + str(response.status) +
-                                    await response.text())
+                    return response
+
         except aiohttp.ClientError as e:
             logger.debug('Request DELETE ' + url + ' failed with error: ' + str(e))
 
@@ -111,58 +90,14 @@ async def request_delete(url, unpack, headers=None, data=None, max_retries=float
     return None
 
 
-async def request_get_json(url, max_retries=float('inf'), headers=None):
-    return await request_get(url, lambda response: response.json(), max_retries=max_retries, headers=headers)
-
-
-async def request_get_binary(url, max_retries=float('inf'), headers=None):
-    return await request_get(url, lambda response: response.read(), max_retries=max_retries, headers=headers)
-
-
-async def request_get(url, unpack, max_retries=float('inf'), headers=None):
+async def request_get(url, max_retries=float('inf'), headers=None):
     retries = 0
     ok_status = False
     while retries <= max_retries and not ok_status:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, ssl=False, headers=headers) as response:
-                    if response.ok:
-                        ok_status = True
-                        if unpack is not None:
-                            return await unpack(response)
-                        else:
-                            return response
-                    else:
-                        logger.debug('Request GET:' + url + ' failed with status code:' + str(response.status) +
-                                     ' ' + await response.text())
-        except aiohttp.ClientError as e:
-            logger.debug('Request GET failed with error:' + str(e))
-
-        # Increment the number of retries and wait for a while before retrying
-        retries += 1
-        await asyncio.sleep(1)
-
-    logger.debug('Maximum number of retries reached. Request failed.')
-    return None
-
-
-async def request_get(url, unpack, max_retries=float('inf'), headers=None):
-    retries = 0
-    ok_status = False
-    while retries <= max_retries and not ok_status:
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, ssl=False, headers=headers) as response:
-                    if response.ok:
-                        ok_status = True
-                        if unpack is not None:
-                            return await unpack(response)
-                        else:
-                            return response
-                    else:
-                        logger.debug('Request GET:' + url + ' failed with status code:' + str(response.status) +
-                                     ' ' + await response.text())
-                        return response
+                    return response
 
         except aiohttp.ClientError as e:
             logger.debug('Request GET failed with error:' + str(e))

@@ -13,8 +13,8 @@ import threading
 import json
 from urllib.parse import urlencode
 
-from .request import request_get_json, request_post_json, request_put, create_reply, create_stream, request_post, \
-    request_delete, create_rejection
+from .request import request_put, create_reply, create_stream, request_post, \
+    request_delete, create_rejection, unpack_json, request_get
 
 logger = logging.getLogger("octoprint.plugins.zupfe.backend")
 
@@ -124,7 +124,8 @@ class Backend:
 
     async def init(self):
         logger.debug('Fetching api urls')
-        data = await request_get_json(self.backendUrl + '/api/version')
+        response = await request_get(self.backendUrl + '/api/version')
+        data = await unpack_json(response)
         self.urls = data['api']['urls']
         logger.debug('Found ' + str(len(self.urls)) + ' urls')
 
@@ -141,7 +142,8 @@ class Backend:
         return self._ws
 
     async def new_octo_id(self):
-        instance = await request_post_json(self.urls[URL_PRINTERS])
+        response = await request_post(self.urls[URL_PRINTERS])
+        instance = await unpack_json(response)
         octo_id = instance['uuid']
         api_key = instance['apiKey']
         self.set_octo_id(octo_id, api_key)
@@ -151,7 +153,8 @@ class Backend:
         post_url = self.urls[URL_PRINTER_SNAPSHOT]
         headers = {"x-api-key": self.api_key}
         post_url = post_url + "?" + urlencode(config)
-        post_info = await request_post_json(post_url, headers=headers)
+        response = await request_post(post_url, headers=headers)
+        post_info = await unpack_json(response)
         await request_put(post_info['uploadURL'], None, headers=headers, data=snapshot)
 
     async def post_event(self, event):
@@ -168,7 +171,7 @@ class Backend:
     async def set_printer_title(self, title, max_retries=1):
         data = {'title': title}
         headers = {"X-Api-Key": self.api_key}
-        await request_post_json(self.urls[URL_PRINTER_TITLE],
+        await request_post(self.urls[URL_PRINTER_TITLE],
                                 headers=headers,
                                 data=data,
                                 max_retries=max_retries)
@@ -181,9 +184,10 @@ class Backend:
 
     async def get_link_status(self, max_retries=float('inf')):
         headers = {"X-Api-Key": self.api_key}
-        return await request_get_json(self.urls[URL_PRINTER_STATUS],
+        response = await request_get(self.urls[URL_PRINTER_STATUS],
                                       headers=headers,
                                       max_retries=max_retries)
+        return await unpack_json(response)
 
     async def unlink(self):
         headers = {"X-Api-Key": self.api_key}

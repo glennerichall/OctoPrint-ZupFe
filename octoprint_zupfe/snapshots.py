@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from octoprint_zupfe import request_get_binary
+from .request import request_get, unpack_binary
 
 logger = logging.getLogger("PRINTERS.plugins.zupfe.snapshots")
 
@@ -11,12 +11,12 @@ async def wait_until_next_day():
 
 
 async def take_snapshot(webcam):
-    if (webcam.config.canSnapshot and
-        webcam.config.compat is not None):
+    if webcam.config.canSnapshot and webcam.config.compat is not None:
 
         snapshot_url = webcam.config.compat.snapshot
         snapshot_config = webcam.config
-        data = await request_get_binary(snapshot_url, max_retries=1)
+        response = await request_get(snapshot_url, max_retries=1)
+        data = unpack_binary(response)
         config = {
             'flip_h': snapshot_config.flipH,
             'flip_v': snapshot_config.flipV,

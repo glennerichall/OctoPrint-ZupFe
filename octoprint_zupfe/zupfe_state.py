@@ -4,9 +4,8 @@ import datetime
 import octoprint
 
 from .constants import EVENT_PRINTER_POWER_UP, EVENT_PRINTER_POWER_DOWN
-from .request import request_get_json
-from .zupfe_request import ZupfeRequest
 from .utils import compute_md5
+from .zupfe_request import ZupfeRequest
 
 
 class ZupfeState(octoprint.plugin.SettingsPlugin,
@@ -41,11 +40,7 @@ class ZupfeState(octoprint.plugin.SettingsPlugin,
 
     async def list_files(self):
         # use REST api to fetch also last print date information, not available through file_manager
-        api_url = "http://localhost:" + str(self._port) + "/api/files?recursive=true"
-        headers = {
-            "X-Api-Key": self._settings.global_get(["api", "key"])
-        }
-        response = await request_get_json(api_url, headers=headers)
+        response = await self.request_get("files?recursive=true")
 
         # flatten file list
         stack = response['files']

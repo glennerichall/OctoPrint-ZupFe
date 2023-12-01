@@ -1,7 +1,7 @@
 import logging
 
 from .FileObject import FileObject
-from .request import request_get_binary
+from .request import request_get, unpack_binary
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_REQUEST_GET_FILE_LIST, EVENT_REQUEST_STREAM, \
     EVENT_RTC_OFFER, EVENT_REQUEST_GET_STATE, EVENT_REQUEST_PRINT_ACTIVE_FILE, EVENT_REQUEST_SET_ACTIVE_FILE, \
@@ -81,7 +81,8 @@ def handle_message(plugin, message, reply, reject):
         filename = message['filename']
 
         signed_url = message['signedUrl']
-        data = await request_get_binary(signed_url)
+        response = await request_get(signed_url)
+        data = unpack_binary(response)
         file_manager = plugin.file_manager()
         try:
             file_object = FileObject(data)

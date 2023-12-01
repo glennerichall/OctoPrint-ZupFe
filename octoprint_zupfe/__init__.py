@@ -12,12 +12,12 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_OCTOP
     EVENT_REQUEST_DOWNLOAD_FILE, EVENT_REQUEST_SET_ACTIVE_FILE, EVENT_REQUEST_ABORT_PRINT, EVENT_REQUEST_PROGRESS, \
     EVENT_PRINTER_PRINT_DONE, EVENT_PRINTER_POWER_UP, EVENT_PRINTER_POWER_DOWN
 from .frontend import Frontend
-from .request import request_get, request_get_binary, request_get_json, request_post_json
+from .request import request_get
 from .snapshots import take_snapshots_daily
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 from .worker import AsyncTaskWorker
 from .zupfe_api import ZupfeApiPlugin
-from .zupfe_backend import Backend
+from .backend import Backend
 from .zupfe_events import ZupfeEvents
 from .zupfe_printer import ZupfePrinter
 from .zupfe_progress import ZupfeProgress
