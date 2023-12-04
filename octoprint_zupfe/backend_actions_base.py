@@ -1,3 +1,4 @@
+from .exceptions import NotFoundException, AuthRequiredException, RequestException
 
 
 class BackendActionBase:
@@ -20,7 +21,19 @@ class BackendActionBase:
     async def request(self, method, url, data=None, headers=None, max_retries=None):
         if max_retries is None:
             max_retries = self._max_retries
-        return await self._backend.request(method, url, data=data, headers=headers, max_retries=max_retries)
+        response = await self._backend.request(method, url, data=data,
+                                               headers=headers, max_retries=max_retries)
+        if response.status() == 404:
+            response.close()
+            raise NotFoundException(method, url, data=data, headers=headers)
+        elif response.status() == 401:
+            response.close()
+            raise AuthRequiredException(method, url, data=data, headers=headers)
+        elif not response.ok():
+            response.close()
+            raise RequestException(response.status(), method, url, data=data, headers=headers)
+
+        return response
 
     async def get(self, url, headers=None, max_retries=float('inf')):
         return await self.request('GET', url, headers=headers, max_retries=max_retries)
@@ -33,4 +46,3 @@ class BackendActionBase:
 
     async def delete(self, url, headers=None, max_retries=float('inf')):
         return await self.request('DELETE', url, headers=headers, max_retries=max_retries)
-

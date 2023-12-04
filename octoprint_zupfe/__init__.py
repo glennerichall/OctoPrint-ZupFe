@@ -1,10 +1,12 @@
 # coding=utf-8
 from __future__ import absolute_import
 
-import octoprint.plugin
+import octoprint
+from octoprint.plugin import EventHandlerPlugin, AssetPlugin, ProgressPlugin, StartupPlugin, SettingsPlugin
 
-from .FileObject import FileObject
+from .file_object import FileObject
 from .api import ApiBase
+from .backend_actions import BackendActions
 from .commands import handle_message
 from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_OCTOPRINT_SHOW_WIZARD, \
     EVENT_REQUEST_GET_FILE_LIST, EVENT_RTC_OFFER, EVENT_REQUEST_STREAM, \
@@ -12,60 +14,125 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_OCTOP
     EVENT_PRINTER_PAUSED, EVENT_PRINTER_CANCELED, EVENT_PRINTER_OPERATIONAL, EVENT_REQUEST_PRINT_ACTIVE_FILE, \
     EVENT_REQUEST_DOWNLOAD_FILE, EVENT_REQUEST_SET_ACTIVE_FILE, EVENT_REQUEST_ABORT_PRINT, EVENT_REQUEST_PROGRESS, \
     EVENT_PRINTER_PRINT_DONE, EVENT_PRINTER_POWER_UP, EVENT_PRINTER_POWER_DOWN
-from .file_manager import FileManager
+from .events import handle_event, handle_event_async
+from .file_manager import Files
 from .frontend import Frontend
+from .progress import Progress
 from .request import request_get
 from .snapshots import take_snapshots_daily
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 from .worker import AsyncTaskWorker
 from .zupfe_api import ZupfeApiPlugin
 from .backend import Backend
-from .zupfe_events import ZupfeEvents
 from .printer import Printer
-from .zupfe_progress import ZupfeProgress
-from .zupfe_settings import ZupfeSettings
-from .zupfe_startup import ZupfeStartup
-from .zupfe_state import ZupfeState
+from .settings import Settings
+from .startup import initialize_backend_async, start_poll_loops
 from .zupfe_template import ZupfeTemplate
 from .zupfe_wizard import ZupfeWizard
 
 
 class ZupfePlugin(
     ZupfeApiPlugin,
-    ZupfeSettings,
     ZupfeWizard,
-    ZupfeProgress,
-    ZupfeEvents,
     ZupfeTemplate,
-    ZupfeStartup,
-    octoprint.plugin.AssetPlugin):
+    StartupPlugin,
+    ProgressPlugin,
+    EventHandlerPlugin,
+    SettingsPlugin,
+    AssetPlugin):
 
     def __init__(self):
         super().__init__()
         self._host = None
         self._port = None
         self._default_webcam = None
-        self._messaging = None
-        self._id = None
-        self._api_key = None
-        self._printer_title = None
-        self._print_line = None
-        self._print_progress = None
-        self._file_pos = None
-        self.worker = AsyncTaskWorker()
-        self.backend = None
-        self.actions = None
-        self.frontend = None
-        self.api = ApiBase(self)
+        self._worker = AsyncTaskWorker()
+        self._progress = Progress(self)
+        self._backend = None
 
+    @property
+    def progress(self):
+        return self._progress
+
+    @property
+    def webcam(self):
+        return self._default_webcam
+
+    @property
+    def backend(self):
+        return self._backend
+
+    @property
+    def actions(self):
+        return BackendActions(self.backend)
+
+    @property
+    def frontend(self):
+        return Frontend(self._identifier, self._plugin_manager)
+
+    @property
+    def api(self):
+        api_key = self._settings.global_get(["api", "key"])
+        return ApiBase(self._host, self._port, api_key)
+
+    @property
+    def worker(self):
+        return self._worker
+
+    @property
     def file_manager(self):
-        return FileManager(self._file_manager, self.api, self._id)
+        octo_id = None
+        if self.backend is not None:
+            octo_id = self.backend.octo_id
 
+        return Files(self.api, self._file_manager, octo_id)
+
+    @property
     def printer(self):
-        return Printer(self._printer, self.api)
+        return Printer(self._printer, self.api, self.settings)
 
-    def on_message(self, message, reply, reject):
-        handle_message(self, message, reply, reject)
+    @property
+    def logger(self):
+        return self._logger
+
+    @property
+    def settings(self):
+        return Settings(self._settings)
+
+    def on_event(self, event, payload):
+        handle_event_async(self, event, payload)
+
+    def on_startup(self, host, port):
+        self._host = host
+        self._port = port
+        backend_url = self.settings.get('backend_url', 'https://zupfe.velor.ca')
+        frontend_url = self.settings.get('frontend_url', 'https://zupfe.velor.ca')
+        self._default_webcam = octoprint.webcams.get_snapshot_webcam()
+        self._backend = Backend(backend_url, frontend_url)
+
+        self.logger.debug(f"Using backend at {backend_url}")
+        self.logger.debug(f"Using frontend at {frontend_url}")
+
+        initialize_backend_async(self)
+
+    def on_after_startup(self):
+        start_poll_loops(self)
+        self._logger.info("Hello World from ZupFe!")
+
+    def get_settings_defaults(self):
+        return {
+            'backend_url': 'https://zupfe.velor.ca',
+            'frontend_url': 'https://zupfe.velor.ca',
+            'linked': False,
+            'api_key': None,
+            'octoprint_id': None
+        }
+
+    def on_print_progress(self, storage, path, progress):
+        self.progress.update_progress(progress)
+
+    def on_gcode_sent(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
+        self.progress.update_position(tags)
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py

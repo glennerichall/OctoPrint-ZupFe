@@ -34,9 +34,12 @@ class ResponseWrapper:
     def status(self):
         return self._response.status
 
+    def ok(self):
+        return self._response.ok
 
-async def request(url,
-                  method,
+
+async def request(method,
+                  url,
                   headers=None,
                   data=None,
                   max_retries=float('inf')):

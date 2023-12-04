@@ -11,6 +11,7 @@ from octoprint_zupfe.request import create_stream, create_reply, create_rejectio
 
 logger = logging.getLogger("octoprint.plugins.zupfe.backend")
 
+
 class WebSocketClient:
     def __init__(self, backend_ws_url, octo_id, api_key, on_message,
                  on_open=None, on_close=None, on_error=None):
@@ -42,6 +43,7 @@ class WebSocketClient:
                                           on_error=self._on_error,
                                           on_close=self._on_close)
 
+    @property
     def is_connected(self):
         return self._connected
 

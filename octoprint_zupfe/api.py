@@ -2,20 +2,22 @@ from .request import request
 
 
 class ApiBase:
-    def __init__(self, plugin):
-        self._plugin = plugin
+    def __init__(self, host, port, api_key):
+        self._host = host
+        self._port = port
+        self._api_key = api_key
 
     async def request(self, method, url, data=None, headers=None):
         if headers is None:
             headers = {}
 
-        api_url = "http://localhost:" + str(self._plugin._port) + "/api" + url
+        api_url = f"http://localhost:{self._port}/api{url}"
         headers = {
             **headers,
-            "X-Api-Key": self._plugin._settings.global_get(["api", "key"])
+            "X-Api-Key": self._api_key
         }
         response = await request(method, api_url, headers=headers, data=data, max_retries=3)
-        return await response.json()
+        return response
 
     async def get(self, url):
         return await self.request('GET', url)
@@ -24,4 +26,4 @@ class ApiBase:
         headers = {
             "content-type": 'application/json'
         }
-        return await self.request('GET', url, data=data, headers=headers)
+        return await self.request('POST', url, data=data, headers=headers)

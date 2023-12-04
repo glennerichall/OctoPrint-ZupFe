@@ -16,7 +16,7 @@ async def take_snapshot(webcam):
         snapshot_url = webcam.config.compat.snapshot
         snapshot_config = webcam.config
         response = await request_get(snapshot_url, max_retries=1)
-        data = response.read()
+        data = await response.read()
         config = {
             'flip_h': snapshot_config.flipH,
             'flip_v': snapshot_config.flipV,

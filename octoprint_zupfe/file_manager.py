@@ -4,11 +4,11 @@ from . import FileObject
 from .utils import compute_md5
 
 
-class FileManager:
-    def __init(self, file_manager, api, uuid):
+class Files:
+    def __init__(self, api, file_manager, octo_id):
         self._file_manager = file_manager
         self._api = api
-        self._id = uuid
+        self._octo_id = octo_id
 
     def path_on_disk(self, filename):
         if not filename.endswith('.gcode'):
@@ -47,7 +47,7 @@ class FileManager:
 
     async def list_files(self):
         # use REST api to fetch also last print date information, not available through file_manager
-        response = await self._api.get("files?recursive=true")
+        response = await self._api.get("/files?recursive=true")
         response = await response.json()
 
         # flatten file list
@@ -89,7 +89,7 @@ class FileManager:
                 'hash': md5_hash,
                 'creation': datetime.datetime.fromtimestamp(file['date']).isoformat(),
                 'last_print': last_print,
-                'printer_uuid': self._id
+                'printer_uuid': self._octo_id
             }
             result.append(obj)
         return result

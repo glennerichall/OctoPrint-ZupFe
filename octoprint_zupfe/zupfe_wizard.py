@@ -5,7 +5,7 @@ class ZupfeWizard(octoprint.plugin.WizardPlugin):
     # # Return true if the wizard needs to be shown.
     def is_wizard_required(self):
         # We don't need to show the wizard if we know current instance is linked.
-        return not self.get_bool_from_settings('linked', False)
+        return not self.settings.get_bool('linked', False)
 
     # Increment this if we need to pop the wizard again.
     def get_wizard_version(self):

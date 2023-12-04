@@ -17,7 +17,8 @@ def handle_message(plugin, message, reply, reject):
         if AIORTC_AVAILABLE:
             try:
                 logger.debug("Setting-up ICE connection")
-                p2p = await accept_webrtc_offer(plugin.on_message, offer)
+                p2p = await accept_webrtc_offer(lambda message, reply, reject:
+                                                handle_message(plugin, message, reply, reject), offer)
                 answer = get_webrtc_reply(p2p)
                 logger.debug("Replying webrtc answer")
                 reply(answer)
@@ -29,11 +30,11 @@ def handle_message(plugin, message, reply, reject):
             reply(None)
 
     async def on_linked():
-        plugin.save_to_settings_if_updated('linked', True)
+        plugin.settings.save_if_updated('linked', True)
         plugin.frontend.emitOctoprintLinked()
 
     async def on_unlinked():
-        plugin.save_to_settings_if_updated('linked', False)
+        plugin.settings.save_if_updated('linked', False)
         plugin.frontend.emitOctoprintUnlinked()
 
     async def on_request_file_stream():
@@ -43,7 +44,7 @@ def handle_message(plugin, message, reply, reject):
             filename = filename + '.gcode'
 
         chunk_size = 1024 * 128
-        file_manager = plugin.file_manager()
+        file_manager = plugin.file_manager
         file_path = file_manager.path_on_disk(filename)
         with open(file_path, 'rb') as f:
             while True:
@@ -54,31 +55,31 @@ def handle_message(plugin, message, reply, reject):
                 reply(chunk)
 
     async def on_request_file_list():
-        files = await plugin.file_manager().list_files()
+        files = await plugin.file_manager.list_files()
         reply(files)
 
     async def no_op():
         pass
 
     async def on_request_state():
-        state = await plugin.printer().get_state()
+        state = await plugin.printer.get_state()
         active_file = state['activeFile']
 
         if active_file is not None:
-            state['activeFile'] = plugin.file_manager().get_file_info(active_file)
+            state['activeFile'] = plugin.file_manager.get_file_info(active_file)
 
         reply(state)
 
     async def on_request_print_active_file():
-        state = await plugin.get_current_state()
+        state = await plugin.printer.get_state()
         if not state['state']['printing']:
-            plugin.printer().start_print()
+            plugin.printer.start_print()
         reply(state)
 
     async def on_request_abort_print():
-        state = await plugin.get_current_state()
-        if state['state']['printing']:
-            plugin.printer().cancel_print()
+        state = await plugin.printer.get_state()
+        if state['state']['printing']:  # printing is boolean
+            plugin.printer.cancel_print()
         reply(state)
 
     async def on_request_download_file():
@@ -86,7 +87,7 @@ def handle_message(plugin, message, reply, reject):
         signed_url = message['signedUrl']
         response = await request_get(signed_url)
         data = response.read()
-        file_manager = plugin.file_manager()
+        file_manager = plugin.file_manager
         try:
             file_manager.save_file(filename, data)
             reply(None)
@@ -95,16 +96,16 @@ def handle_message(plugin, message, reply, reject):
 
     async def on_request_set_active_file():
         filename = message['filename']
-        file_manager = plugin.file_manager()
+        file_manager = plugin.file_manager
         try:
             file_path = file_manager.path_on_disk(filename)
-            plugin.printer().select_file(file_path, False)
+            plugin.printer.select_file(file_path)
             reply(None)
         except Exception as e:
             reject(str(e))
 
     async def on_request_progress():
-        progress = plugin.get_progress()
+        progress = await plugin.progress.get_progress()
         reply(progress)
 
     async def on_request_power_on():

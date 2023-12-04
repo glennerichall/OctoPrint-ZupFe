@@ -4,7 +4,7 @@ import octoprint
 class ZupfeTemplate(octoprint.plugin.TemplatePlugin):
     def get_template_vars(self):
         return {
-            'frontend_url': self.get_from_settings('frontend_url', 'https://zupfe.velor.ca'),
+            'frontend_url': self.settings.get('frontend_url', 'https://zupfe.velor.ca'),
         }
 
     def get_assets(self):

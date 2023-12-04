@@ -1,11 +1,10 @@
 from urllib.parse import urlencode
 
-from aiohttp import ClientResponse
-
 from .backend_actions_base import BackendActionBase
 from .constants import URL_PRINTER_TITLE, \
     URL_PRINTER_STATUS, URL_PRINTER_EVENT, URL_PRINTER_LINK, \
     URL_PRINTERS, URL_PRINTER_SNAPSHOT
+from .exceptions import NotFoundException, AuthRequiredException
 from .request import request_put
 
 
@@ -40,9 +39,10 @@ class BackendActions(BackendActionBase):
         await response.close()
 
     async def check_uuid(self):
-        link_status = await self.get_link_status()
-        if isinstance(link_status, ClientResponse):
-            return not (link_status.status == 404 or link_status.status == 401)
+        try:
+            await self.get_link_status()
+        except (NotFoundException, AuthRequiredException):
+            return False
         return True
 
     async def get_link_status(self):
