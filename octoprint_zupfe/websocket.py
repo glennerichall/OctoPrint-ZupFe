@@ -60,6 +60,9 @@ class WebSocketClient:
         if self._on_error_callback is not None:
             self._on_error_callback()
 
+    def send(self, message):
+        self._ws.send(message)
+
     def _on_message(self, ws, message):
         # print(f"Received message from server: {message}")
         message = json.loads(message.decode('utf-8'))

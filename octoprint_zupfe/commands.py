@@ -105,7 +105,7 @@ def handle_message(plugin, message, reply, reject):
             reject(str(e))
 
     async def on_request_progress():
-        progress = await plugin.progress.get_progress()
+        progress = await plugin.progress.get_progress_with_temperatures()
         reply(progress)
 
     async def on_request_power_on():

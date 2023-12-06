@@ -22,6 +22,7 @@ from .request import request_get
 from .snapshots import take_snapshots_daily
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 from .worker import AsyncTaskWorker
+from .ws_actions import P2PActions
 from .zupfe_api import ZupfeApiPlugin
 from .backend import Backend
 from .printer import Printer
@@ -98,6 +99,12 @@ class ZupfePlugin(
     @property
     def settings(self):
         return Settings(self._settings)
+
+    @property
+    def p2p(self):
+        if self._backend is None:
+            return None
+        return P2PActions(self._backend.ws)
 
     def on_event(self, event, payload):
         handle_event_async(self, event, payload)

@@ -1,4 +1,3 @@
-
 class Progress:
     def __init__(self, plugin):
         self._plugin = plugin
@@ -19,7 +18,16 @@ class Progress:
                         self._file_pos = int(item.split(':')[1])
                         break
 
-    async def get_progress(self):
+    def get_progress(self):
+        progress = self._print_progress
+        file_pos = self._file_pos
+
+        return {
+            'progress': progress,
+            'filePos': file_pos
+        }
+
+    async def get_progress_with_temperatures(self):
         progress = self._print_progress
         file_pos = self._file_pos
         current_temps = await self._plugin.printer.get_current_temperatures()

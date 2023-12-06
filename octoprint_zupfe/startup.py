@@ -2,7 +2,7 @@ import asyncio
 
 from . import take_snapshots_daily, handle_message
 from .backend_sync import update_title_if_changed
-from .power_state_poll_loop import start_power_state_poll_loop
+from .power_state_poll_loop import start_power_state_poll_loop, start_progress_push_loop
 
 
 def start_poll_loops(plugin):
@@ -12,6 +12,10 @@ def start_poll_loops(plugin):
 
     while not plugin.backend.is_initialized:
         asyncio.sleep(2)  # wait 2 seconds before checking if backend has received its urls
+
+    plugin.worker.run_thread_safe(
+        start_progress_push_loop(plugin.progress,
+                                 plugin.p2p))
 
     plugin.worker.run_thread_safe(
         take_snapshots_daily(plugin.webcam, plugin.actions))

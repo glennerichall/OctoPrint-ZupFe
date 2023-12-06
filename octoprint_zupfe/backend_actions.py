@@ -1,9 +1,10 @@
+import json
 from urllib.parse import urlencode
 
 from .backend_actions_base import BackendActionBase
 from .constants import URL_PRINTER_TITLE, \
     URL_PRINTER_STATUS, URL_PRINTER_EVENT, URL_PRINTER_LINK, \
-    URL_PRINTERS, URL_PRINTER_SNAPSHOT
+    URL_PRINTERS, URL_PRINTER_SNAPSHOT, EVENT_PRINTER_PROGRESS
 from .exceptions import NotFoundException, AuthRequiredException
 from .request import request_put
 
@@ -27,9 +28,9 @@ class BackendActions(BackendActionBase):
         post_info = await response.json()
         await request_put(post_info['uploadURL'], None, data=snapshot)
 
-    async def post_event(self, event):
+    async def post_event(self, event, data=None):
         url = self.get_url(URL_PRINTER_EVENT, params={'event': event})
-        response = await self.post(url)
+        response = await self.post(url, data=data)
         await response.close()
 
     async def set_printer_title(self, title):

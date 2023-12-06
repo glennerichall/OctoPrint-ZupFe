@@ -35,6 +35,10 @@ class Backend:
     def api_key(self):
         return self._api_key
 
+    @property
+    def ws(self):
+        return self._ws
+
     async def request(self, method, url, headers=None, data=None, max_retries=float('inf')):
         if headers is None:
             headers = {}
