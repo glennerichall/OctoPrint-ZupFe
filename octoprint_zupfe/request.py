@@ -6,6 +6,7 @@ import aiohttp
 
 from octoprint_zupfe.constants import (EVENT_MESSAGE_RESPONSE, EVENT_STREAM_CONTENT,
                                        EVENT_STREAM_END, EVENT_STREAM_INFO, EVENT_MESSAGE_FAILURE)
+from octoprint_zupfe.message_builder import MessageBuilder
 
 logger = logging.getLogger("octoprint.plugins.zupfe.backend")
 
@@ -89,37 +90,39 @@ async def request_delete(url, headers=None,
 
 def create_reply(transport, message):
     def reply(content):
-        response = {
-            'id': message['id'],
-            'cmd': EVENT_MESSAGE_RESPONSE,
-            'response': content
-        }
-        transport.send(json.dumps(response))
+        response = MessageBuilder().new_reply(message, content)
+        transport.send_binary(response['buffer'])
 
     return reply
 
 
+class StreamReply:
+    def __init__(self, transport, message):
+        content = message.json()
+        self._transport = transport
+        self._message = message
+        self._stream_id = content['streamId']
+        self._reply = create_reply(transport, message)
+
+    def start_stream(self, info):
+        self._reply(info)
+
+    def end_stream(self):
+        response = MessageBuilder().new_stream_end(self._stream_id)
+        self._transport.send_binary(response['buffer'])
+
+    def send_chunk(self, chunk):
+        response = MessageBuilder().new_stream_chunk(self._stream_id, chunk)
+        self._transport.send_binary(response['buffer'])
+
+
 def create_stream(transport, message):
-    id = message['id']
-
-    def stream(content):
-        if content is None:
-            transport.send(EVENT_STREAM_END.encode('utf-8') + id.encode('utf-8'))
-        elif content is dict:
-            transport.send(EVENT_STREAM_INFO.encode('utf-8') + id.encode('utf-8') + json.dumps(content))
-        else:
-            transport.send(EVENT_STREAM_CONTENT.encode('utf-8') + id.encode('utf-8') + content)
-
-    return stream
+    return StreamReply(transport, message)
 
 
 def create_rejection(transport, message):
     def reject(content):
-        response = {
-            'id': message['id'],
-            'cmd': EVENT_MESSAGE_FAILURE,
-            'response': content
-        }
-        transport.send(json.dumps(response))
+        response = MessageBuilder().new_rejection(message, content)
+        transport.send_binary(response['buffer'])
 
     return reject

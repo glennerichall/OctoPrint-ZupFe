@@ -7,6 +7,8 @@ import time
 import websocket
 
 from octoprint_zupfe import EVENT_REQUEST_STREAM
+from octoprint_zupfe.constants import MESSAGE_STREAM
+from octoprint_zupfe.message_builder import MessageBuilder
 from octoprint_zupfe.request import create_stream, create_reply, create_rejection
 
 logger = logging.getLogger("octoprint.plugins.zupfe.backend")
@@ -63,16 +65,26 @@ class WebSocketClient:
     def send(self, message):
         self._ws.send(message)
 
+    def send_binary(self, message):
+        self._ws.send(message, websocket.ABNF.OPCODE_BINARY)
+
     def _on_message(self, ws, message):
         # print(f"Received message from server: {message}")
-        message = json.loads(message.decode('utf-8'))
-        if message['cmd'] == EVENT_REQUEST_STREAM:
-            reply = create_stream(ws, message)
-        else:
-            reply = create_reply(ws, message)
+        # message = json.loads(message.decode('utf-8'))
 
-        reject = create_rejection(ws, message)
-        self._on_message_callback(message, reply=reply, reject=reject)
+        message = MessageBuilder().unpack(message)
+
+        reject = create_rejection(self, message)
+        if not message.is_command:
+            reject()
+
+        else:
+            if message.command == EVENT_REQUEST_STREAM:
+                reply = create_stream(self, message)
+            else:
+                reply = create_reply(self, message)
+
+            self._on_message_callback(message, reply=reply, reject=reject)
 
     def _on_open(self, wssapp):
         logger.info('Websocket opened')

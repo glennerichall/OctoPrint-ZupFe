@@ -1,4 +1,5 @@
 import logging
+import os
 
 from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_REQUEST_GET_FILE_LIST, EVENT_REQUEST_STREAM, \
     EVENT_RTC_OFFER, EVENT_REQUEST_GET_STATE, EVENT_REQUEST_PRINT_ACTIVE_FILE, EVENT_REQUEST_SET_ACTIVE_FILE, \
@@ -38,7 +39,8 @@ def handle_message(plugin, message, reply, reject):
         plugin.frontend.emitOctoprintUnlinked()
 
     async def on_request_file_stream():
-        filename = message['filename']
+        content = message.json()
+        filename = content['data']['filename']
 
         if not filename.endswith('.gcode'):
             filename = filename + '.gcode'
@@ -46,13 +48,28 @@ def handle_message(plugin, message, reply, reject):
         chunk_size = 1024 * 128
         file_manager = plugin.file_manager
         file_path = file_manager.path_on_disk(filename)
-        with open(file_path, 'rb') as f:
-            while True:
-                chunk = f.read(chunk_size)
-                if not chunk:  # End of file
-                    reply(None)
-                    break
-                reply(chunk)
+
+        if not os.path.isfile(file_path):
+            error = {
+                'message': 'File does not exist',
+                'filename': filename
+            }
+            reject(error)
+        else:
+            stream_info = {
+                'filename': filename,
+                'length': os.path.getsize(file_path)
+            }
+            reply.start_stream(stream_info)
+
+            with open(file_path, 'rb') as f:
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk:  # End of file
+                        break
+                    reply.send_chunk(chunk)
+
+            reply.end_stream()
 
     async def on_request_file_list():
         files = await plugin.file_manager.list_files()
@@ -145,8 +162,8 @@ def handle_message(plugin, message, reply, reject):
         EVENT_REQUEST_POWER_OFF: on_request_power_off,
         EVENT_REQUEST_CONNECTION: on_request_connect,
     }
-    handler = handlers.get(message['cmd'])
+    handler = handlers.get(message.command)
     if handler is not None:
         plugin.worker.run_thread_safe(handler())
     else:
-        reject('Unknown request ' + message['cmd'])
+        reject('Unknown request ' + message.command)

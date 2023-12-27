@@ -16,7 +16,7 @@ async def update_title_if_changed(plugin):
     link_status = await plugin.actions.get_link_status()
     plugin.logger.debug(f'Status is {link_status}')
 
-    linked = link_status['status'] == 'linked'
+    linked = link_status['linked'] == 'linked'
     plugin.settings.save_if_updated('linked', linked)
 
     if (link_status['name'] is None
