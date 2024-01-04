@@ -1,4 +1,8 @@
+import logging
+
 from octoprint_zupfe.backend_sync import update_title_if_changed, notify_printer_state_changed
+
+logger = logging.getLogger("octoprint.plugins.zupfe.events")
 
 
 def handle_event_async(plugin, event, payload):
@@ -6,6 +10,7 @@ def handle_event_async(plugin, event, payload):
 
 
 async def handle_event(plugin, event, payload):
+
     if event == "SettingsUpdated":
         await update_title_if_changed(plugin)
 
@@ -16,7 +21,10 @@ async def handle_event(plugin, event, payload):
         await notify_printer_state_changed(plugin, event)
 
     elif event == "PrintDone":
-        await notify_printer_state_changed(plugin, event)
+        state = await plugin.printer.get_state()
+        active_file = state['activeFile']
+        data = {'filename': active_file}
+        await notify_printer_state_changed(plugin, event, data)
 
     elif event == "PrintStarted":
         plugin.progress.update_progress(0)
@@ -24,4 +32,7 @@ async def handle_event(plugin, event, payload):
 
     elif event == "PrinterStateChanged":
         plugin.logger.debug('Printer state changed ' + payload['state_id'])
-        await notify_printer_state_changed(plugin, payload['state_id'])
+        state = await plugin.printer.get_state()
+        active_file = state['activeFile']
+        data = {'filename': active_file}
+        await notify_printer_state_changed(plugin, payload['state_id'], data)

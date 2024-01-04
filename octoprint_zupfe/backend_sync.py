@@ -25,7 +25,7 @@ async def update_title_if_changed(plugin):
         await plugin.actions.set_printer_title(title)
 
 
-async def notify_printer_state_changed(plugin, state):
+async def notify_printer_state_changed(plugin, state, data=None):
     states = {
         'UpdatedFiles': EVENT_PRINTER_FILES_UPDATED,
         'FileSelected': EVENT_PRINTER_FILE_SELECTED,
@@ -38,4 +38,4 @@ async def notify_printer_state_changed(plugin, state):
     }
     if plugin.backend is not None and state in states:
         event = states[state]
-        await plugin.actions.post_event(event)
+        await plugin.actions.post_event(event, data=data)

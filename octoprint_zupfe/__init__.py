@@ -17,6 +17,7 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_OCTOP
 from .events import handle_event, handle_event_async
 from .file_manager import Files
 from .frontend import Frontend
+from .message_builder import MessageBuilder
 from .progress import Progress
 from .request import request_get
 from .snapshots import take_snapshots_daily
@@ -27,7 +28,7 @@ from .zupfe_api import ZupfeApiPlugin
 from .backend import Backend
 from .printer import Printer
 from .settings import Settings
-from .startup import initialize_backend_async, start_poll_loops
+from .startup import initialize_backend_async, start_push_poll_loops
 from .zupfe_template import ZupfeTemplate
 from .zupfe_wizard import ZupfeWizard
 
@@ -104,7 +105,17 @@ class ZupfePlugin(
     def p2p(self):
         if self._backend is None:
             return None
-        return P2PActions(self._backend.ws)
+        return P2PActions(self)
+
+    @property
+    def transport(self):
+        if self._backend is None:
+            return None
+        return self._backend.ws
+
+    @property
+    def message_builder(self):
+        return MessageBuilder()
 
     def on_event(self, event, payload):
         handle_event_async(self, event, payload)
@@ -123,7 +134,7 @@ class ZupfePlugin(
         initialize_backend_async(self)
 
     def on_after_startup(self):
-        start_poll_loops(self)
+        start_push_poll_loops(self)
         self._logger.info("Hello World from ZupFe!")
 
     def get_settings_defaults(self):
@@ -150,7 +161,7 @@ __plugin_name__ = "ZupFe For Octoprint"
 # Set the Python version your plugin is compatible with below. Recommended is Python 3 only for all new plugins.
 # OctoPrint 1.4.0 - 1.7.x run under both Python 3 and the end-of-life Python 2.
 # OctoPrint 1.8.0 onwards only supports Python 3.
-__plugin_pythoncompat__ = ">=3,<4"  # Only Python 3
+__plugin_pythoncompat__ = ">=3.7,<4"  # Only Python 3
 
 __plugin_privacypolicy__ = "https://zupfe.velor.ca/privacy.html"
 

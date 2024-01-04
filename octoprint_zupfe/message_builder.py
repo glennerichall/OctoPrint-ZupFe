@@ -51,8 +51,6 @@ class MessageBuilder:
             return self.new_binary(data, details)
         elif isinstance(data, dict) or isinstance(data, list):  # Handle dict or list as JSON
             return self.new_json(data, details)
-        elif isinstance(data, dict):
-            return self.new_json(data, details)
         elif isinstance(data, str):
             return self.new_string(data, details)
         else:

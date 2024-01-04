@@ -36,7 +36,7 @@ class Printer:
         response = await self._api.post("/plugin/psucontrol", data={"command": "turnPSUOff"})
         await response.close()
 
-    async def get_current_temperatures(self):
+    def get_current_temperatures(self):
         return self._printer.get_current_temperatures()
 
     async def get_state(self):

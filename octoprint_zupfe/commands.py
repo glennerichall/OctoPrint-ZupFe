@@ -4,7 +4,7 @@ import os
 from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_REQUEST_GET_FILE_LIST, EVENT_REQUEST_STREAM, \
     EVENT_RTC_OFFER, EVENT_REQUEST_GET_STATE, EVENT_REQUEST_PRINT_ACTIVE_FILE, EVENT_REQUEST_SET_ACTIVE_FILE, \
     EVENT_REQUEST_DOWNLOAD_FILE, EVENT_REQUEST_ABORT_PRINT, EVENT_REQUEST_PROGRESS, EVENT_REQUEST_POWER_ON, \
-    EVENT_REQUEST_POWER_OFF, EVENT_REQUEST_CONNECTION
+    EVENT_REQUEST_POWER_OFF, EVENT_REQUEST_CONNECTION, EVENT_REQUEST_TEMPERATURE_HISTORY
 from .request import request_get
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 
@@ -100,10 +100,11 @@ def handle_message(plugin, message, reply, reject):
         reply(state)
 
     async def on_request_download_file():
-        filename = message['filename']
-        signed_url = message['signedUrl']
+        content = message.json()
+        filename = content['filename']
+        signed_url = content['signedUrl']
         response = await request_get(signed_url)
-        data = response.read()
+        data = await response.read()
         file_manager = plugin.file_manager
         try:
             file_manager.save_file(filename, data)
@@ -112,7 +113,8 @@ def handle_message(plugin, message, reply, reject):
             reject(str(e))
 
     async def on_request_set_active_file():
-        filename = message['filename']
+        content = message.json()
+        filename = content['filename']
         file_manager = plugin.file_manager
         try:
             file_path = file_manager.path_on_disk(filename)
@@ -146,6 +148,10 @@ def handle_message(plugin, message, reply, reject):
         except Exception as e:
             reject(None)
 
+    async def on_request_temperature_history():
+        history = plugin.progress.get_temperature_history()
+        reply(history)
+
     handlers = {
         EVENT_PRINTER_LINKED: on_linked,
         EVENT_PRINTER_UNLINKED: on_unlinked,
@@ -161,6 +167,7 @@ def handle_message(plugin, message, reply, reject):
         EVENT_REQUEST_POWER_ON: on_request_power_on,
         EVENT_REQUEST_POWER_OFF: on_request_power_off,
         EVENT_REQUEST_CONNECTION: on_request_connect,
+        EVENT_REQUEST_TEMPERATURE_HISTORY: on_request_temperature_history,
     }
     handler = handlers.get(message.command)
     if handler is not None:

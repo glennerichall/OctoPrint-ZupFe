@@ -14,7 +14,7 @@ class BackendActionBase:
 
         if params is not None:
             for key, value in params.items():
-                url = url.replace(f':{key}', value)
+                url = url.replace(f':{key}', str(value))
 
         return url
 
