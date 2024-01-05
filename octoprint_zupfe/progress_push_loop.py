@@ -8,6 +8,6 @@ async def start_progress_push_loop(progress, actions):
     while True:
         try:
             await actions.post_progress(progress.get_progress_with_temperatures())
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(0.1)
         except Exception as e:
             await asyncio.sleep(2)

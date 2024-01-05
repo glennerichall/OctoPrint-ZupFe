@@ -10,6 +10,7 @@ class MessageWrapper:
         self._message = message
         self._info = message['info']
         self._data = message['data']
+        self._version = message['version']
 
     @property
     def info(self):
@@ -17,19 +18,15 @@ class MessageWrapper:
 
     @property
     def version(self):
-        return self._message['version']
+        return self._version
 
     @property
     def data_type(self):
         return self._info['dataType']
 
     @property
-    def details(self):
-        return self._info['details']
-
-    @property
     def type(self):
-        return self.details['type']
+        return self.info['messageType']
 
     @property
     def datetime(self):
@@ -38,7 +35,7 @@ class MessageWrapper:
 
     @property
     def timestamp(self):
-        return self._info['timestamp']
+        return self.info['timestamp']
 
     @property
     def is_json(self):
@@ -82,19 +79,19 @@ class MessageWrapper:
 
     @property
     def event(self):
-        return self.info['details'].get('event')
+        return self.info['messageMeta']
 
     @property
     def command(self):
-        return self.info['details'].get('command')
+        return self.info['messageMeta']
 
     @property
     def replies_to(self):
-        return self.info['details'].get('replyTo')
+        return self.info['messageMeta']
 
     @property
     def stream_id(self):
-        return self.info['details'].get('streamId')
+        return self.info['messageMeta']
 
     def json(self):
         return decode_json(self._data)

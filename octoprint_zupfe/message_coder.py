@@ -25,28 +25,58 @@ class MessageCoderV1:
         self.version = 1
 
     def pack(self, info, content=None):
-        header = encode_json(info)
+        header_length = 27
 
         if content is not None:
             content_length = len(content)
-            format_str = f'>BI{len(header)}s{content_length}s'
-            packed_data = struct.pack(format_str, self.version, len(header), header, content)
+            format_str = f'>BIQQBHQ{content_length}s'
+            packed_data = struct.pack(format_str,
+                                      self.version,
+                                      header_length,
+                                      info['id'],
+                                      info['timestamp'],
+                                      info['dataType'],
+                                      info['messageType'],
+                                      info['messageMeta'],
+                                      content)
         else:
-            format_str = f'>BI{len(header)}s'
-            packed_data = struct.pack(format_str, self.version, len(header), header)
+            format_str = f'>BIQQBHQ'
+            packed_data = struct.pack(format_str,
+                                      self.version,
+                                      header_length,
+                                      info['id'],
+                                      info['timestamp'],
+                                      info['dataType'],
+                                      info['messageType'],
+                                      info['messageMeta'], )
 
         return packed_data
 
     def unpack(self, buffer):
-        version, header_size = struct.unpack_from('>BI', buffer, 0)
+        unpacked_data = struct.unpack_from('>BIQQBHQ', buffer, 0)
+
+        version = unpacked_data[0]
+        header_length = unpacked_data[1]
+        info_id = unpacked_data[2]
+        timestamp = unpacked_data[3]
+        data_type = unpacked_data[4]
+        message_type = unpacked_data[5]
+        message_meta = unpacked_data[6]
+
         if version != self.version:
             raise ValueError(f"Bad message version {version} != {self.version}")
-        header_end = 5 + header_size
-        header = buffer[5:header_end]
+
+        header_end = 5 + header_length
         content = buffer[header_end:]
-        info = decode_json(header)
+
         return {
             'version': version,
-            'info': info,
+            'info': {
+                'id': info_id,
+                'timestamp': timestamp,
+                'dataType': data_type,
+                'messageType': message_type,
+                'messageMeta': message_meta
+            },
             'data': content
         }
