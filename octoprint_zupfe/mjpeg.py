@@ -1,27 +1,30 @@
+import random
+
 import requests
-import websocket
 import threading
 
-from octoprint_zupfe.constants import EVENT_MJPEG_FRAME
+from octoprint_zupfe import MessageBuilder
+from octoprint_zupfe.message_builder import max_safe_integer_js
 
 
-def send_mjpeg_to_websocket(mjpeg_url, ws):
+def send_mjpeg_to_websocket(webcam, ws):
+    mjpeg_url = webcam.config.extras['stream']
+
     def read_stream():
         resp = requests.get(mjpeg_url, stream=True)
-
-        buffer = b''
+        stream_id = random.randint(0, max_safe_integer_js - 1)
+        stream = b''
+        builder = MessageBuilder()
         for chunk in resp.iter_content(chunk_size=1024):
-            buffer += chunk
+            stream += chunk
             # Check if the buffer contains the start and end of a frame
-            if buffer.find(b'\xff\xd8') != -1 and buffer.find(b'\xff\xd9') != -1:
-                start = buffer.find(b'\xff\xd8')
-                end = buffer.find(b'\xff\xd9', start) + 2
-                frame = buffer[start:end]
-                buffer = buffer[end:]
-
-                frame = frame + EVENT_MJPEG_FRAME
-                ws.send(frame, opcode=websocket.ABNF.OPCODE_BINARY)
-
-        ws.close()
+            start = stream.find(b'\xff\xd8')
+            end = stream.find(b'\xff\xd9', start)
+            if start != -1 and end != -1:
+                end = end + 2
+                frame = stream[start:end]
+                stream = stream[end:]
+                message = builder.new_mjpeg_frame(frame, stream_id)
+                ws.send_binary(message['buffer'])
 
     threading.Thread(target=read_stream).start()

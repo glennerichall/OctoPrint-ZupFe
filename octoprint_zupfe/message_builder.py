@@ -3,7 +3,7 @@ import uuid
 import time
 
 from octoprint_zupfe.constants import MESSAGE_EMPTY, MESSAGE_JSON, MESSAGE_STRING, MESSAGE_BINARY, MESSAGE_REPLY, \
-    MESSAGE_EVENT, MESSAGE_COMMAND, MESSAGE_STREAM, MESSAGE_REJECT
+    MESSAGE_EVENT, MESSAGE_COMMAND, MESSAGE_STREAM, MESSAGE_REJECT, MESSAGE_MJPEG
 from octoprint_zupfe.message_coder import MessageCoderV1, encode_json, encode_string
 from octoprint_zupfe.message_wrapper import MessageWrapper
 
@@ -80,6 +80,9 @@ class MessageBuilder:
 
     def new_stream_end(self, stream_id):
         return self.new_empty(MESSAGE_STREAM, stream_id)
+
+    def new_mjpeg_frame(self, frame, stream_id):
+        return self.new_binary(frame, MESSAGE_MJPEG, stream_id)
 
     # -------------------------------------------------------------------------
 

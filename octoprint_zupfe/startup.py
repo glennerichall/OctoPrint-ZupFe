@@ -2,6 +2,7 @@ import asyncio
 
 from . import take_snapshots_daily, handle_message
 from .backend_sync import update_title_if_changed
+from .mjpeg import send_mjpeg_to_websocket
 from .power_state_poll_loop import start_power_state_poll_loop
 from .progress_push_loop import start_progress_push_loop
 
@@ -11,8 +12,8 @@ def start_push_poll_loops(plugin):
         start_power_state_poll_loop(plugin.printer,
                                     plugin.actions))
 
-    while not plugin.backend.is_connected:
-        asyncio.sleep(2)  # wait 2 seconds before checking if backend has received its urls
+    while not plugin.backend.is_connected or plugin.backend.ws is None:
+        asyncio.sleep(2)  # wait 2 seconds before checking if backend has received its urls and is connected
 
     plugin.worker.run_thread_safe(
         start_progress_push_loop(plugin.progress,
@@ -20,6 +21,8 @@ def start_push_poll_loops(plugin):
 
     plugin.worker.run_thread_safe(
         take_snapshots_daily(plugin.webcam, plugin.actions))
+
+    send_mjpeg_to_websocket(plugin.webcam, plugin.backend.ws)
 
 
 def initialize_backend_async(plugin):
@@ -33,6 +36,7 @@ def initialize_backend_async(plugin):
             plugin.logger.error(str(e))
 
     async def initialize_backend():
+        plugin.logger.debug('Initializing backend')
         await plugin.backend.init()
         plugin.frontend.emitInitialized()
 
@@ -53,6 +57,7 @@ def initialize_backend_async(plugin):
             else:
                 plugin.backend.set_octo_id(octo_id, api_key)
 
+            plugin.logger.debug('Checking validity of octoid and api key')
             uuid_valid = await plugin.actions.check_uuid()
 
             if not uuid_valid:
