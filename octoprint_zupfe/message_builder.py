@@ -66,7 +66,7 @@ class MessageBuilder:
         return self.new_variant(MESSAGE_REPLY, reply_to, data)
 
     def new_rejection(self, message, error):
-        reply_to = message.info.id
+        reply_to = message.info['id']
         return self.new_variant(MESSAGE_REJECT, reply_to, error)
 
     def new_event(self, event, data):

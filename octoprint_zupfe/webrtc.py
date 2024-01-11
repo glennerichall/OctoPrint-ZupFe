@@ -2,7 +2,7 @@ import json
 import logging
 from asyncio import Future
 
-logger = logging.getLogger("octoprint.plugins.zupfe.p2p")
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 try:
     from aiortc import RTCPeerConnection, RTCSessionDescription
@@ -22,7 +22,7 @@ except ImportError as e:
         def __init__(self, *args, **kwargs):
             raise NotImplementedError("RTCSessionDescription is not available due to import error")
 
-from .constants import EVENT_REQUEST_STREAM
+from .constants import RPC_REQUEST_STREAM
 from .request import create_reply, create_stream, create_rejection
 
 
@@ -46,7 +46,7 @@ async def accept_webrtc_offer(on_message, offer):
         @channel.on("message")
         def on_channel_message(message):
             message = json.loads(message)
-            if message['cmd'] == EVENT_REQUEST_STREAM:
+            if message['cmd'] == RPC_REQUEST_STREAM:
                 reply = create_stream(channel, message)
             else:
                 reply = create_reply(channel, message)

@@ -16,7 +16,7 @@ class ApiBase:
             **headers,
             "X-Api-Key": self._api_key
         }
-        response = await request(method, api_url, headers=headers, data=data, max_retries=3)
+        response = await request(method, api_url, headers=headers, data=data, max_retries=5)
         return response
 
     async def get(self, url):

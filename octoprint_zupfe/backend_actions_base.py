@@ -1,4 +1,8 @@
+import logging
+
 from .exceptions import NotFoundException, AuthRequiredException, RequestException
+
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 class BackendActionBase:

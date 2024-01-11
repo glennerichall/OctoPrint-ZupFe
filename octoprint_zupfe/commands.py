@@ -1,14 +1,15 @@
 import logging
 import os
 
-from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_REQUEST_GET_FILE_LIST, EVENT_REQUEST_STREAM, \
-    EVENT_RTC_OFFER, EVENT_REQUEST_GET_STATE, EVENT_REQUEST_PRINT_ACTIVE_FILE, EVENT_REQUEST_SET_ACTIVE_FILE, \
-    EVENT_REQUEST_DOWNLOAD_FILE, EVENT_REQUEST_ABORT_PRINT, EVENT_REQUEST_PROGRESS, EVENT_REQUEST_POWER_ON, \
-    EVENT_REQUEST_POWER_OFF, EVENT_REQUEST_CONNECTION, EVENT_REQUEST_TEMPERATURE_HISTORY
+from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, \
+    RPC_REQUEST_TEMPERATURE_HISTORY, RPC_REQUEST_CONNECTION, RPC_REQUEST_POWER_OFF, RPC_REQUEST_POWER_ON, \
+    RPC_REQUEST_PROGRESS, RPC_REQUEST_ABORT_PRINT, RPC_REQUEST_DOWNLOAD_FILE, RPC_REQUEST_SET_ACTIVE_FILE, \
+    RPC_REQUEST_PRINT_ACTIVE_FILE, RPC_REQUEST_GET_STATE, RPC_REQUEST_STREAM, RPC_REQUEST_GET_FILE_LIST, RPC_RTC_OFFER, \
+    get_constant_name
 from .request import request_get
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 
-logger = logging.getLogger("octoprint.plugins.zupfe.commands")
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 def handle_message(plugin, message, reply, reject):
@@ -155,22 +156,26 @@ def handle_message(plugin, message, reply, reject):
     handlers = {
         EVENT_PRINTER_LINKED: on_linked,
         EVENT_PRINTER_UNLINKED: on_unlinked,
-        EVENT_REQUEST_GET_FILE_LIST: on_request_file_list,
-        EVENT_REQUEST_STREAM: on_request_file_stream,
-        EVENT_RTC_OFFER: on_request_p2p,
-        EVENT_REQUEST_GET_STATE: on_request_state,
-        EVENT_REQUEST_PRINT_ACTIVE_FILE: on_request_print_active_file,
-        EVENT_REQUEST_SET_ACTIVE_FILE: on_request_set_active_file,
-        EVENT_REQUEST_DOWNLOAD_FILE: on_request_download_file,
-        EVENT_REQUEST_ABORT_PRINT: on_request_abort_print,
-        EVENT_REQUEST_PROGRESS: on_request_progress,
-        EVENT_REQUEST_POWER_ON: on_request_power_on,
-        EVENT_REQUEST_POWER_OFF: on_request_power_off,
-        EVENT_REQUEST_CONNECTION: on_request_connect,
-        EVENT_REQUEST_TEMPERATURE_HISTORY: on_request_temperature_history,
+
+        RPC_REQUEST_GET_FILE_LIST: on_request_file_list,
+        RPC_REQUEST_STREAM: on_request_file_stream,
+        RPC_RTC_OFFER: on_request_p2p,
+        RPC_REQUEST_GET_STATE: on_request_state,
+        RPC_REQUEST_PRINT_ACTIVE_FILE: on_request_print_active_file,
+        RPC_REQUEST_SET_ACTIVE_FILE: on_request_set_active_file,
+        RPC_REQUEST_DOWNLOAD_FILE: on_request_download_file,
+        RPC_REQUEST_ABORT_PRINT: on_request_abort_print,
+        RPC_REQUEST_PROGRESS: on_request_progress,
+        RPC_REQUEST_POWER_ON: on_request_power_on,
+        RPC_REQUEST_POWER_OFF: on_request_power_off,
+        RPC_REQUEST_CONNECTION: on_request_connect,
+        RPC_REQUEST_TEMPERATURE_HISTORY: on_request_temperature_history,
     }
+    name = get_constant_name(message.command)
     handler = handlers.get(message.command)
+    plugin.logger.debug("received message: %s", name)
     if handler is not None:
-        plugin.worker.run_thread_safe(handler())
+        plugin.worker.submit_coroutine(handler())
     else:
+        plugin.logger.debug("Command does not exist: " + str(message.command))
         reject('Unknown request ' + message.command)

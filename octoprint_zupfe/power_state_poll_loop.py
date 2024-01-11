@@ -3,10 +3,10 @@ import logging
 
 from octoprint_zupfe import EVENT_PRINTER_POWER_UP, EVENT_PRINTER_POWER_DOWN
 
-logger = logging.getLogger("octoprint.plugins.zupfe.loop")
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
-async def start_power_state_poll_loop(printer, actions):
+async def power_state_poll_loop(printer, actions):
     logger.debug("Starting printer power state poll loop")
     old_power_state = printer.is_power_on()
     while True:
@@ -16,8 +16,12 @@ async def start_power_state_poll_loop(printer, actions):
             break
         if not old_power_state == printer.is_power_on():
             logger.debug("Printer power state changed")
-            await actions.post_event(EVENT_PRINTER_POWER_UP if
-                                     printer.is_power_on() else
-                                     EVENT_PRINTER_POWER_DOWN)
+            try:
+                await actions.post_event(EVENT_PRINTER_POWER_UP if
+                                         printer.is_power_on() else
+                                         EVENT_PRINTER_POWER_DOWN)
+            except Exception as e:
+                logger.debug('Error while taking or sending power state ' + str(e))
+
         old_power_state = printer.is_power_on()
         await asyncio.sleep(1)

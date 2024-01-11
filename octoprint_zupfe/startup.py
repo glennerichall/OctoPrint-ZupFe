@@ -1,36 +1,29 @@
 import asyncio
 
-from . import take_snapshots_daily, handle_message
-from .backend_sync import update_title_if_changed
+from . import snapshots_daily_push_loop, handle_message, AsyncTaskWorker
+from .backend_sync import update_status_if_changed
 from .mjpeg import send_mjpeg_to_websocket
-from .power_state_poll_loop import start_power_state_poll_loop
-from .progress_push_loop import start_progress_push_loop
+from .power_state_poll_loop import power_state_poll_loop
+from .progress_push_loop import progress_push_loop
 
 
 def start_push_poll_loops(plugin):
-    plugin.worker.run_thread_safe(
-        start_power_state_poll_loop(plugin.printer,
-                                    plugin.actions))
+    worker = AsyncTaskWorker("Loops")
 
-    while not plugin.backend.is_connected or plugin.backend.ws is None:
-        asyncio.sleep(2)  # wait 2 seconds before checking if backend has received its urls and is connected
+    worker.submit_coroutine(
+        power_state_poll_loop(plugin.printer, plugin.actions),
+        progress_push_loop(plugin.progress, plugin.p2p),
+        snapshots_daily_push_loop(plugin.webcam, plugin.actions)
+    )
 
-    plugin.worker.run_thread_safe(
-        start_progress_push_loop(plugin.progress,
-                                 plugin.p2p))
-
-    plugin.worker.run_thread_safe(
-        take_snapshots_daily(plugin.webcam, plugin.actions))
-
-    send_mjpeg_to_websocket(plugin.webcam, plugin.backend.ws)
+    # send_mjpeg_to_websocket(plugin.webcam, plugin.backend.ws)
 
 
 def initialize_backend_async(plugin):
-
     async def on_connected():
         plugin.logger.debug("Connected to websocket")
         try:
-            await update_title_if_changed(plugin)
+            await update_status_if_changed(plugin)
             plugin.frontend.emitBackendConnected()
         except Exception as e:
             plugin.logger.error(str(e))
@@ -48,9 +41,9 @@ def initialize_backend_async(plugin):
             if octo_id is None:
                 plugin.logger.debug('No octoid, asking for a new one')
                 instance = await plugin.actions.new_octo_id()
+                plugin.logger.debug('Got a new octoid')
                 octo_id = instance['uuid']
                 api_key = instance['apiKey']
-                plugin.logger.debug('Got a new octoid')
                 plugin.settings.save_if_updated('octoprint_id', octo_id)
                 plugin.settings.save_if_updated('api_key', api_key)
                 plugin.settings.save_if_updated('linked', False)
@@ -64,6 +57,8 @@ def initialize_backend_async(plugin):
                 plugin.logger.debug('Octoid not found on backend or api key is invalid, flushing octoid')
                 octo_id = None
                 api_key = None
+            else:
+                plugin.logger.debug('Octoid is valid')
 
         # must transmit api key because:
         # jinja may not have access to value when rendering wizard
@@ -71,14 +66,14 @@ def initialize_backend_async(plugin):
         plugin.frontend.emitApiKey(api_key)
 
         try:
-            await update_title_if_changed(plugin)
 
             plugin.logger.debug('Connecting to websocket')
-            plugin.backend.connect_wss(on_message=lambda message, reply, reject: handle_message(plugin, message, reply, reject),
-                                       on_close=plugin.frontend.emitBackendDisconnected,
-                                       on_error=plugin.frontend.emitBackendDisconnected,
-                                       on_open=lambda: plugin.worker.run_thread_safe(on_connected()))
+            plugin.backend.connect_wss(
+                on_message=lambda message, reply, reject: handle_message(plugin, message, reply, reject),
+                on_close=plugin.frontend.emitBackendDisconnected,
+                on_error=plugin.frontend.emitBackendDisconnected,
+                on_open=lambda: plugin.worker.submit_coroutine(on_connected()))
         except Exception as e:
             plugin.logger.error(str(e))
 
-    plugin.worker.run_thread_safe(initialize_backend())
+    plugin.worker.submit_coroutine(initialize_backend())

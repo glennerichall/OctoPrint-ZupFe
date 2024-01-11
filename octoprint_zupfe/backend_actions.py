@@ -1,4 +1,5 @@
 import json
+import logging
 from urllib.parse import urlencode
 
 from .backend_actions_base import BackendActionBase
@@ -7,6 +8,8 @@ from .constants import URL_PRINTER_TITLE, \
     URL_PRINTERS, URL_PRINTER_SNAPSHOT, EVENT_PRINTER_PROGRESS
 from .exceptions import NotFoundException, AuthRequiredException
 from .request import request_put
+
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 class BackendActions(BackendActionBase):

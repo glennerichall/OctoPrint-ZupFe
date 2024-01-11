@@ -9,10 +9,8 @@ from .api import ApiBase
 from .backend_actions import BackendActions
 from .commands import handle_message
 from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_OCTOPRINT_SHOW_WIZARD, \
-    EVENT_REQUEST_GET_FILE_LIST, EVENT_RTC_OFFER, EVENT_REQUEST_STREAM, \
-    EVENT_PRINTER_FILES_UPDATED, EVENT_PRINTER_FILE_SELECTED, EVENT_PRINTER_PRINTING, EVENT_REQUEST_GET_STATE, \
-    EVENT_PRINTER_PAUSED, EVENT_PRINTER_CANCELED, EVENT_PRINTER_OPERATIONAL, EVENT_REQUEST_PRINT_ACTIVE_FILE, \
-    EVENT_REQUEST_DOWNLOAD_FILE, EVENT_REQUEST_SET_ACTIVE_FILE, EVENT_REQUEST_ABORT_PRINT, EVENT_REQUEST_PROGRESS, \
+    EVENT_PRINTER_FILES_UPDATED, EVENT_PRINTER_FILE_SELECTED, EVENT_PRINTER_PRINTING, \
+    EVENT_PRINTER_PAUSED, EVENT_PRINTER_CANCELED, EVENT_PRINTER_OPERATIONAL, \
     EVENT_PRINTER_PRINT_DONE, EVENT_PRINTER_POWER_UP, EVENT_PRINTER_POWER_DOWN
 from .events import handle_event, handle_event_async
 from .file_manager import Files
@@ -20,7 +18,7 @@ from .frontend import Frontend
 from .message_builder import MessageBuilder
 from .progress import Progress
 from .request import request_get
-from .snapshots import take_snapshots_daily
+from .snapshots import snapshots_daily_push_loop
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 from .worker import AsyncTaskWorker
 from .ws_actions import P2PActions
@@ -48,9 +46,11 @@ class ZupfePlugin(
         self._host = None
         self._port = None
         self._default_webcam = None
-        self._worker = AsyncTaskWorker()
+        self._worker = AsyncTaskWorker("Main Worker")
         self._progress = Progress(self)
         self._backend = None
+        self._printerWrapper = None
+        self._api = None
 
     @property
     def progress(self):
@@ -74,8 +74,7 @@ class ZupfePlugin(
 
     @property
     def api(self):
-        api_key = self._settings.global_get(["api", "key"])
-        return ApiBase(self._host, self._port, api_key)
+        return self._api
 
     @property
     def worker(self):
@@ -91,7 +90,7 @@ class ZupfePlugin(
 
     @property
     def printer(self):
-        return Printer(self._printer, self.api, self.settings)
+        return self._printerWrapper
 
     @property
     def logger(self):
@@ -123,10 +122,16 @@ class ZupfePlugin(
     def on_startup(self, host, port):
         self._host = host
         self._port = port
+
         backend_url = self.settings.get('backend_url', 'https://zupfe.velor.ca')
         frontend_url = self.settings.get('frontend_url', 'https://zupfe.velor.ca')
+        api_key = self._settings.global_get(["api", "key"])
+
         self._default_webcam = octoprint.webcams.get_snapshot_webcam()
+
         self._backend = Backend(backend_url, frontend_url)
+        self._api = ApiBase(host, port, api_key)
+        self._printerWrapper = Printer(self._printer, self._api, self.settings)
 
         self.logger.debug(f"Using backend at {backend_url}")
         self.logger.debug(f"Using frontend at {frontend_url}")
@@ -134,6 +139,7 @@ class ZupfePlugin(
         initialize_backend_async(self)
 
     def on_after_startup(self):
+        self.logger.debug(f"Starting poll loops")
         start_push_poll_loops(self)
         self._logger.info("Hello World from ZupFe!")
 

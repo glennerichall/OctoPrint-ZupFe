@@ -5,7 +5,7 @@ from octoprint_zupfe.constants import EVENT_OCTOPRINT_BACKEND_INITIALIZED, EVENT
     EVENT_PRINTER_UNLINKED, EVENT_OCTOPRINT_BACKEND_CONNECTED, EVENT_OCTOPRINT_BACKEND_DISCONNECTED, \
     EVENT_OCTOPRINT_APIKEY_RECEIVED
 
-logger = logging.getLogger("octoprint.plugins.zupfe.frontend")
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 class Frontend:
     def __init__(self, identifier, plugin_manager):

@@ -15,7 +15,7 @@ class ZupfeApiPlugin(octoprint.plugin.BlueprintPlugin):
     def delete_link(self):
         if not self.backend.is_connected or self.backend.octo_id is None:
             return None
-        self.worker.run_thread_safe(self.actions.unlink())
+        self.worker.submit_coroutine(self.actions.unlink())
         return {}
 
     @octoprint.plugin.BlueprintPlugin.route("/connection/status", methods=["GET"])

@@ -6,12 +6,11 @@ import time
 
 import websocket
 
-from octoprint_zupfe import EVENT_REQUEST_STREAM
-from octoprint_zupfe.constants import MESSAGE_STREAM
+from octoprint_zupfe.constants import RPC_REQUEST_STREAM
 from octoprint_zupfe.message_builder import MessageBuilder
 from octoprint_zupfe.request import create_stream, create_reply, create_rejection
 
-logger = logging.getLogger("octoprint.plugins.zupfe.backend")
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 class WebSocketClient:
@@ -75,11 +74,11 @@ class WebSocketClient:
         message = MessageBuilder().unpack(message)
 
         reject = create_rejection(self, message)
-        if not message.is_command:
+        if not message.is_command and not message.is_event:
             reject()
 
         else:
-            if message.command == EVENT_REQUEST_STREAM:
+            if message.command == RPC_REQUEST_STREAM:
                 reply = create_stream(self, message)
             else:
                 reply = create_reply(self, message)

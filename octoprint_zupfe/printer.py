@@ -1,6 +1,6 @@
 import logging
 
-logger = logging.getLogger("octoprint.plugins.zupfe.printer")
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 class Printer:

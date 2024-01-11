@@ -5,7 +5,7 @@ import aiohttp
 
 from octoprint_zupfe.message_builder import MessageBuilder
 
-logger = logging.getLogger("octoprint.plugins.zupfe.backend")
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 class ResponseWrapper:
@@ -118,7 +118,7 @@ def create_stream(transport, message):
 
 
 def create_rejection(transport, message):
-    def reject(content):
+    def reject(content=None):
         response = MessageBuilder().new_rejection(message, content)
         transport.send_binary(response['buffer'])
 

@@ -1,6 +1,6 @@
 import logging
 
-logger = logging.getLogger("octoprint.plugins.zupfe.settings")
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 class Settings:
@@ -19,7 +19,7 @@ class Settings:
 
         # Gets the current setting or the default value.
 
-    def get_bool(self, name, default):
+    def get_bool(self, name, default=None):
         value = self._settings.get([name])
         if value is None:
             return default

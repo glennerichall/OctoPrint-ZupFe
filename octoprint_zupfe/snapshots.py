@@ -31,7 +31,7 @@ async def take_snapshot(webcam):
     return None
 
 
-async def take_snapshots_daily(webcam, actions):
+async def snapshots_daily_push_loop(webcam, actions):
     while True:
         try:
             logger.debug('Taking a snapshot from the printer camera')
@@ -39,6 +39,6 @@ async def take_snapshots_daily(webcam, actions):
             logger.debug('Posting the snapshot to ZupFe')
             await actions.post_snapshot(snapshot['config'], snapshot['data'])
         except Exception as e:
-            logger.error('Error while taking or sending snapshot ' + str(e))
+            logger.debug('Error while taking or sending snapshot ' + str(e))
 
         await wait_until_next_day()

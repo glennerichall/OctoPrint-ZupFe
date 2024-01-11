@@ -3,7 +3,7 @@ import logging
 from .request import request_get, request
 from .websocket import WebSocketClient
 
-logger = logging.getLogger("octoprint.plugins.zupfe.backend")
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 class Backend:
@@ -29,7 +29,7 @@ class Backend:
 
     @property
     def urls(self):
-        return self._urls_with_id
+        return self._urls_with_id if self._urls_with_id is not None else self._original_urls
 
     @property
     def api_key(self):
@@ -43,7 +43,9 @@ class Backend:
         if headers is None:
             headers = {}
 
-        headers = {**headers, "x-api-key": self.api_key}
+        if self.api_key is not None:
+            headers = {**headers, "x-api-key": self.api_key}
+
         return await request(method, url, headers=headers, data=data, max_retries=max_retries)
 
     @property

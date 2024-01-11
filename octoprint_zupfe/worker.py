@@ -3,33 +3,38 @@ import logging
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
-logger = logging.getLogger("octoprint.plugins.zupfe.worker")
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 class AsyncTaskWorker:
-    def __init__(self):
-        self.loop = None
+    def __init__(self, name="AsyncTaskWorker"):
+        self._loop = None
+        self._loop_ready = threading.Event()
         self._thread = threading.Thread(
-            target=self.run,
-            name=str(self.__class__),
+            target=self._run,
+            name=name,
         )
-        self._thread.daemon = True
+        # self._thread.daemon = True
         logger.info(f"Starting thread {self._thread.name}")
         self._thread.start()
 
-    def run(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-        self.loop.set_default_executor(
-            ThreadPoolExecutor(thread_name_prefix="PrintNanny")
+    def _run(self):
+        self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._loop)
+        self._loop.set_default_executor(
+            ThreadPoolExecutor(thread_name_prefix="AsyncTaskWorker_")
         )
-        self.loop.run_forever()
+        self._loop_ready.set()
+        self._loop.run_forever()
 
     def shutdown(self, **kwargs):
-        logger.warning("NatsWorker shutdown initiated")
-        self.loop.stop()
-        self.loop.close()
+        logger.warning("AsyncTaskWorker shutdown initiated")
+        self._loop.stop()
+        self._loop.close()
         self._thread.join()
 
-    def run_thread_safe(self, coroutine):
-        return asyncio.run_coroutine_threadsafe(coroutine, self.loop)
+    def submit_coroutine(self, coroutine, *others):
+        self._loop_ready.wait()
+        asyncio.run_coroutine_threadsafe(coroutine, self._loop)
+        for other in others:
+            asyncio.run_coroutine_threadsafe(other, self._loop)
