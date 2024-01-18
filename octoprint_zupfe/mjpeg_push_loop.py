@@ -7,7 +7,7 @@ from octoprint_zupfe import MessageBuilder
 from octoprint_zupfe.message_builder import max_safe_integer_js
 
 
-def send_mjpeg_to_websocket(webcam, ws):
+def send_mjpeg_to_websocket(webcam, wsProvider):
     mjpeg_url = webcam.config.extras['stream']
 
     def read_stream():
@@ -25,6 +25,11 @@ def send_mjpeg_to_websocket(webcam, ws):
                 frame = stream[start:end]
                 stream = stream[end:]
                 message = builder.new_mjpeg_frame(frame, stream_id)
-                ws.send_binary(message['buffer'])
+                ws = wsProvider()
+                if ws is not None:
+                    try:
+                        ws.send_binary(message['buffer'])
+                    except Exception as e:
+                        pass
 
     threading.Thread(target=read_stream).start()

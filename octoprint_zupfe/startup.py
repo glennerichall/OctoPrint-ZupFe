@@ -1,22 +1,30 @@
-import asyncio
-
 from . import snapshots_daily_push_loop, handle_message, AsyncTaskWorker
 from .backend_sync import update_status_if_changed
-from .mjpeg import send_mjpeg_to_websocket
+from .mjpeg_push_loop import send_mjpeg_to_websocket
 from .power_state_poll_loop import power_state_poll_loop
-from .progress_push_loop import progress_push_loop
+from .progress_push_loop import progress_push_loop, temperature_push_loop
 
 
 def start_push_poll_loops(plugin):
     worker = AsyncTaskWorker("Loops")
 
     worker.submit_coroutine(
+        # snapshot is sent to the backend to be saved in the database
+        snapshots_daily_push_loop(plugin.webcam, plugin.actions),
+
+        # power state is sent to backend like any other printer event
         power_state_poll_loop(plugin.printer, plugin.actions),
+
+        # temperature and progress are intensive traffic, ideally they should be
+        # sent through webrtc, but websocket is also acceptable. p2p will switch
+        # between webrtc and websocket accordingly.
+        temperature_push_loop(plugin.printer, plugin.progress, plugin.p2p),
         progress_push_loop(plugin.progress, plugin.p2p),
-        snapshots_daily_push_loop(plugin.webcam, plugin.actions)
     )
 
-    # send_mjpeg_to_websocket(plugin.webcam, plugin.backend.ws)
+    # mjpeg is sent through websocket since it is a fallback from missing webrtc
+    # availability in current octoprint instance.
+    send_mjpeg_to_websocket(plugin.webcam, lambda: plugin.backend.ws)
 
 
 def initialize_backend_async(plugin):

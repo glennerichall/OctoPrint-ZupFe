@@ -27,6 +27,7 @@ $(function () {
         self.backend_connected = ko.observable();
         self.all_bound = ko.observable();
         self.urls = ko.observable();
+        self.api_key_invalid = ko.observable();
 
         // Use knockout since jinja will set staticly the api key
         // but since getting the api key from zupfe is done async
@@ -35,6 +36,7 @@ $(function () {
 
         self.backend_initialized(false);
         self.backend_connected(false);
+        self.api_key_invalid(false);
         self.all_bound(false);
         self.api_key(false);
         self.urls({});

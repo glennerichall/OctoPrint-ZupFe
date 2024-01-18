@@ -34,9 +34,11 @@
 }
 #wizard_plugin_zupfe,
 #settings_plugin_zupfe {
+
   .message-offline {
     display: none;
   }
+
   .offline {
     .zupfe-logo {
       filter: grayscale(1);
@@ -44,6 +46,22 @@
 
     .message-offline {
       display: initial;
+    }
+  }
+
+  .lost-octoid-message {
+    display: none;
+  }
+
+  .lost-octoid {
+    .lost-octoid-message {
+      display: initial;
+    }
+
+    .offline {
+      .message-offline {
+        display: none;
+      }
     }
   }
 }
