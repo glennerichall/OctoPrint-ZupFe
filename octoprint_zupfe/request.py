@@ -43,7 +43,6 @@ async def request(method,
                   max_retries=float('inf')):
     retries = 0
     ok_status = False
-    logger.debug(f'{method}: {url}')
 
     while retries < max_retries and not ok_status:
         session = aiohttp.ClientSession()
@@ -53,7 +52,7 @@ async def request(method,
             return ResponseWrapper(session, response)
 
         except aiohttp.ClientError as e:
-            logger.error(f'Request {method} to {url} failed with error: {e}')
+            logger.debug(f'Request {method} to {url} failed with error: {e}')
             retries += 1
             await asyncio.sleep(1)
 

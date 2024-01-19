@@ -1,5 +1,5 @@
 from . import snapshots_daily_push_loop, handle_message, AsyncTaskWorker
-from .backend_sync import update_status_if_changed
+from .backend_sync import update_status_if_changed, notify_power_state_changed
 from .mjpeg_push_loop import send_mjpeg_to_websocket
 from .power_state_poll_loop import power_state_poll_loop
 from .progress_push_loop import progress_push_loop, temperature_push_loop
@@ -13,7 +13,8 @@ def start_push_poll_loops(plugin):
         snapshots_daily_push_loop(plugin.webcam, plugin.actions),
 
         # power state is sent to backend like any other printer event
-        power_state_poll_loop(plugin.printer, plugin.actions),
+        # power_state_poll_loop(plugin.printer, plugin.actions),
+        notify_power_state_changed(plugin),
 
         # temperature and progress are intensive traffic, ideally they should be
         # sent through webrtc, but websocket is also acceptable. p2p will switch

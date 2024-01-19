@@ -1,6 +1,8 @@
 import logging
 
-from octoprint_zupfe.backend_sync import update_status_if_changed, notify_printer_state_changed
+from octoprint_zupfe import EVENT_PRINTER_POWER_UP, EVENT_PRINTER_POWER_DOWN
+from octoprint_zupfe.backend_sync import update_status_if_changed, notify_printer_state_changed, \
+    notify_power_state_changed
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 
@@ -10,12 +12,16 @@ def handle_event_async(plugin, event, payload):
 
 
 async def handle_event(plugin, event, payload):
-    plugin.logger.debug("Received event %s", event)
+    plugin.logger.debug("Received event %s %s", event, str(payload))
 
     if event == "ClientAuthed":
         await update_status_if_changed(plugin)
 
-    if event == "SettingsUpdated":
+    elif event == "plugin_psucontrol_psu_state_changed":
+        plugin.printer.set_power_state(payload)
+        await notify_power_state_changed(plugin)
+
+    elif event == "SettingsUpdated":
         await update_status_if_changed(plugin)
 
     elif event == "UpdatedFiles":

@@ -1,5 +1,8 @@
+import logging
+
 from .request import request
 
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 class ApiBase:
     def __init__(self, host, port, api_key):
@@ -14,9 +17,9 @@ class ApiBase:
         api_url = f"http://localhost:{self._port}/api{url}"
         headers = {
             **headers,
-            "X-Api-Key": self._api_key
+            "X-Api-Key": self._api_key,
         }
-        response = await request(method, api_url, headers=headers, data=data, max_retries=5)
+        response = await request(method, api_url, headers=headers, data=data, max_retries=30)
         return response
 
     async def get(self, url):

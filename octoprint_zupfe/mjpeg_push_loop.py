@@ -32,4 +32,7 @@ def send_mjpeg_to_websocket(webcam, wsProvider):
                     except Exception as e:
                         pass
 
-    threading.Thread(target=read_stream).start()
+    thread = threading.Thread(target=read_stream)
+    # daemon mode is mandatory so threads get kill when server shuts down
+    thread.daemon = True
+    thread.start()

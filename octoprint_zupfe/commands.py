@@ -5,7 +5,7 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, \
     RPC_REQUEST_TEMPERATURE_HISTORY, RPC_REQUEST_CONNECTION, RPC_REQUEST_POWER_OFF, RPC_REQUEST_POWER_ON, \
     RPC_REQUEST_PROGRESS, RPC_REQUEST_ABORT_PRINT, RPC_REQUEST_DOWNLOAD_FILE, RPC_REQUEST_SET_ACTIVE_FILE, \
     RPC_REQUEST_PRINT_ACTIVE_FILE, RPC_REQUEST_GET_STATE, RPC_REQUEST_STREAM, RPC_REQUEST_GET_FILE_LIST, RPC_RTC_OFFER, \
-    get_constant_name
+    get_constant_name, RPC_REQUEST_TOGGLE_POWER
 from .request import request_get
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 
@@ -130,21 +130,36 @@ def handle_message(plugin, message, reply, reject):
 
     async def on_request_power_on():
         try:
-            await plugin.power_on()
+            await plugin.printer.power_on()
             reply(None)
         except Exception as e:
             reject(None)
 
     async def on_request_power_off():
         try:
-            await plugin.power_off()
+            await plugin.printer.power_off()
             reply(None)
         except Exception as e:
             reject(None)
 
+    async def on_request_toggle_power():
+        try:
+            logger.debug('Toggling power')
+            if plugin.printer.has_psu():
+                if plugin.printer.is_power_on():
+                    await plugin.printer.power_off()
+                else:
+                    await plugin.printer.power_on()
+                reply(None)
+            else:
+                logger.debug('Printer has no PSU controller')
+                reject('Print has no PSU controller')
+        except Exception as e:
+            reject(str(e))
+
     async def on_request_connect():
         try:
-            await plugin.connect()
+            await plugin.printer.connect()
             reply(None)
         except Exception as e:
             reject(None)
@@ -168,6 +183,7 @@ def handle_message(plugin, message, reply, reject):
         RPC_REQUEST_PROGRESS: on_request_progress,
         RPC_REQUEST_POWER_ON: on_request_power_on,
         RPC_REQUEST_POWER_OFF: on_request_power_off,
+        RPC_REQUEST_TOGGLE_POWER: on_request_toggle_power,
         RPC_REQUEST_CONNECTION: on_request_connect,
         RPC_REQUEST_TEMPERATURE_HISTORY: on_request_temperature_history,
     }
@@ -178,4 +194,4 @@ def handle_message(plugin, message, reply, reject):
         plugin.worker.submit_coroutine(handler())
     else:
         plugin.logger.debug("Command does not exist: " + str(message.command))
-        reject('Unknown request ' + message.command)
+        reject('Unknown request ' + str(message.command))

@@ -1,6 +1,7 @@
 from octoprint_zupfe import EVENT_PRINTER_FILES_UPDATED, EVENT_PRINTER_FILE_SELECTED, EVENT_PRINTER_PRINT_DONE, \
     EVENT_PRINTER_PRINTING, EVENT_PRINTER_OPERATIONAL, EVENT_PRINTER_CANCELED, EVENT_PRINTER_PAUSED
-from octoprint_zupfe.constants import EVENT_PRINTER_CONNECTING
+from octoprint_zupfe.constants import EVENT_PRINTER_CONNECTING, EVENT_PRINTER_POWER_UP, EVENT_PRINTER_POWER_DOWN, \
+    EVENT_PRINTER_CONNECTED, EVENT_PRINTER_DISCONNECTED
 
 
 async def update_status_if_changed(plugin):
@@ -30,6 +31,13 @@ async def update_status_if_changed(plugin):
         await plugin.actions.set_printer_title(title)
 
 
+async def notify_power_state_changed(plugin):
+    printer = plugin.printer
+    await plugin.actions.post_event(EVENT_PRINTER_POWER_UP if
+                                    printer.is_power_on() else
+                                    EVENT_PRINTER_POWER_DOWN)
+
+
 async def notify_printer_state_changed(plugin, state, data=None):
     states = {
         'UpdatedFiles': EVENT_PRINTER_FILES_UPDATED,
@@ -39,6 +47,7 @@ async def notify_printer_state_changed(plugin, state, data=None):
         'PAUSED': EVENT_PRINTER_PAUSED,
         'CANCELLING': EVENT_PRINTER_CANCELED,
         'CONNECTING': EVENT_PRINTER_CONNECTING,
+        'OFFLINE': EVENT_PRINTER_DISCONNECTED,
         'OPERATIONAL': EVENT_PRINTER_OPERATIONAL
     }
     if plugin.backend is not None and state in states:

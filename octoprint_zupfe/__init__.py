@@ -123,6 +123,8 @@ class ZupfePlugin(
         self._host = host
         self._port = port
 
+        self.logger.debug(f"Local api is accessible at http://{host}:{port}")
+
         backend_url = self.settings.get('backend_url', 'https://zupfe.velor.ca')
         frontend_url = self.settings.get('frontend_url', 'https://zupfe.velor.ca')
         api_key = self._settings.global_get(["api", "key"])

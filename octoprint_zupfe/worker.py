@@ -14,7 +14,8 @@ class AsyncTaskWorker:
             target=self._run,
             name=name,
         )
-        # self._thread.daemon = True
+        # daemon mode is mandatory so threads get kill when server shuts down
+        self._thread.daemon = True
         logger.info(f"Starting thread {self._thread.name}")
         self._thread.start()
 

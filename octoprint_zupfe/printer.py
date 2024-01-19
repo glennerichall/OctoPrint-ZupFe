@@ -1,3 +1,5 @@
+import asyncio
+import json
 import logging
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
@@ -11,6 +13,10 @@ class Printer:
         self._printer = printer
         self._api = api
         self._settings = settings
+
+    def set_power_state(self, power_state):
+        self._has_psu = True
+        self._is_power_on = power_state['isPSUOn']
 
     def get_title(self):
         appearance_settings = self._settings.global_get(['appearance'])
@@ -29,12 +35,24 @@ class Printer:
         self._printer.connect()
 
     async def power_on(self):
-        response = await self._api.post("/plugin/psucontrol", data={"command": "turnPSUOn"})
-        await response.close()
+        logger.debug("turning on printer")
+        data = json.dumps({"command": "turnPSUOn"})
+        response = await self._api.post("/plugin/psucontrol", data=data)
+        if response.status() in range(200, 300):
+            logger.debug("Operation succeeded")
+            await response.close()
+        else:
+            logger.debug("Operation failed %s", str(response.json()))
 
     async def power_off(self):
-        response = await self._api.post("/plugin/psucontrol", data={"command": "turnPSUOff"})
-        await response.close()
+        logger.debug("turning off printer")
+        data = json.dumps({"command": "turnPSUOff"})
+        response = await self._api.post("/plugin/psucontrol", data=data)
+        if response.status() in range(200, 300):
+            logger.debug("Operation succeeded")
+            await response.close()
+        else:
+            logger.debug("Operation failed %s", str(response.json()))
 
     def get_current_temperatures(self):
         return self._printer.get_current_temperatures()
@@ -48,7 +66,13 @@ class Printer:
             active_file = active_file['path']
 
         state = data['state']['flags']
-        power_state = await self.read_psu_state()
+        if self._has_psu is None:
+            power_state = await self.read_psu_state()
+        else:
+            power_state = {
+                'hasPSU': self._has_psu,
+                'isPSUOn': self._is_power_on
+            }
 
         return {
             'activeFile': active_file,
@@ -66,15 +90,27 @@ class Printer:
     async def read_psu_state(self):
         if self._has_psu is None or self._has_psu:
             try:
-                # check if PSU_CONTROL is installed by calling its api
-                response = await self._api.post("/plugin/psucontrol",
-                                                data={"command": "getPSUState"})
-
+                max_retries = 3
+                retries = 0
                 power_state = None
-                if response.status() in range(200, 300):
-                    power_state = await response.json()
-                else:
-                    await response.close()
+
+                # must retry until PSU_CONTROL is bootstrap
+                while retries < max_retries:
+                    # check if PSU_CONTROL is installed by calling its api
+                    data = json.dumps({"command": "getPSUState"})
+                    response = await self._api.post("/plugin/psucontrol", data=data)
+
+                    # logger.debug('Received PSU response with status ' + str(response.status()))
+
+                    if response.status() in range(200, 300):
+                        power_state = await response.json()
+                        break
+                    else:
+                        error = await response.json()
+                        logger.error('PSU response error ' + str(error))
+                        retries = retries + 1
+                        await asyncio.sleep(1)
+                # END LOOP
 
                 if not power_state is None:
                     power_state['hasPSU'] = True
