@@ -1,6 +1,7 @@
-import json
 import logging
 from asyncio import Future
+
+from octoprint_zupfe.message_builder import MessageBuilder
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 
@@ -14,9 +15,11 @@ except ImportError as e:
     AIORTC_AVAILABLE = False
     logger.debug("Loading aiortc failed with error: " + str(e))
 
+
     class RTCPeerConnection:
         def __init__(self, *args, **kwargs):
             raise NotImplementedError("RTCPeerConnection is not available due to import error")
+
 
     class RTCSessionDescription:
         def __init__(self, *args, **kwargs):
@@ -36,6 +39,14 @@ def get_webrtc_reply(peer_connection):
     }
 
 
+class WebrtcClient:
+    def __init__(self, channel):
+        self.channel = channel
+
+    def send_binary(self, data):
+        self.channel.send(data)
+
+
 async def accept_webrtc_offer(on_message, offer):
     peer_connection = RTCPeerConnection()
     remote_description = RTCSessionDescription(sdp=offer['sdp'], type=offer['type'])
@@ -45,13 +56,13 @@ async def accept_webrtc_offer(on_message, offer):
     def on_datachannel(channel):
         @channel.on("message")
         def on_channel_message(message):
-            message = json.loads(message)
-            if message['cmd'] == RPC_REQUEST_STREAM:
-                reply = create_stream(channel, message)
+            message = MessageBuilder().unpack(message)
+            if message.command == RPC_REQUEST_STREAM:
+                reply = create_stream(WebrtcClient(channel), message)
             else:
-                reply = create_reply(channel, message)
+                reply = create_reply(WebrtcClient(channel), message)
 
-            reject = create_rejection(channel, message)
+            reject = create_rejection(WebrtcClient(channel), message)
             on_message(message, reply, reject)
 
     local_description = await peer_connection.createAnswer()

@@ -4,8 +4,8 @@ import os
 from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, \
     RPC_REQUEST_TEMPERATURE_HISTORY, RPC_REQUEST_CONNECTION, RPC_REQUEST_POWER_OFF, RPC_REQUEST_POWER_ON, \
     RPC_REQUEST_PROGRESS, RPC_REQUEST_ABORT_PRINT, RPC_REQUEST_DOWNLOAD_FILE, RPC_REQUEST_SET_ACTIVE_FILE, \
-    RPC_REQUEST_PRINT_ACTIVE_FILE, RPC_REQUEST_GET_STATE, RPC_REQUEST_STREAM, RPC_REQUEST_GET_FILE_LIST, RPC_RTC_OFFER, \
-    get_constant_name, RPC_REQUEST_TOGGLE_POWER
+    RPC_REQUEST_PRINT_ACTIVE_FILE, RPC_REQUEST_GET_STATE, RPC_REQUEST_STREAM, RPC_REQUEST_GET_FILE_LIST, \
+    get_constant_name, RPC_REQUEST_TOGGLE_POWER, RPC_REQUEST_WEBRTC
 from .request import request_get
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 
@@ -15,10 +15,13 @@ logger = logging.getLogger("octoprint.plugins.zupfe")
 def handle_message(plugin, message, reply, reject):
     async def on_request_p2p():
         logger.debug("Receiving webrtc offer")
-        offer = message['offer']
+        offer = message.json()
         if AIORTC_AVAILABLE:
             try:
                 logger.debug("Setting-up ICE connection")
+                # if the offer is accepted, webrtc data channel will call back the lambda
+                # which in return will call back the current "handle_message" handler, letting
+                # webbsocket and webrtc use the same route for message handling.
                 p2p = await accept_webrtc_offer(lambda message, reply, reject:
                                                 handle_message(plugin, message, reply, reject), offer)
                 answer = get_webrtc_reply(p2p)
@@ -174,7 +177,7 @@ def handle_message(plugin, message, reply, reject):
 
         RPC_REQUEST_GET_FILE_LIST: on_request_file_list,
         RPC_REQUEST_STREAM: on_request_file_stream,
-        RPC_RTC_OFFER: on_request_p2p,
+        RPC_REQUEST_WEBRTC: on_request_p2p,
         RPC_REQUEST_GET_STATE: on_request_state,
         RPC_REQUEST_PRINT_ACTIVE_FILE: on_request_print_active_file,
         RPC_REQUEST_SET_ACTIVE_FILE: on_request_set_active_file,
