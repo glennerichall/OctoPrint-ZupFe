@@ -31,6 +31,12 @@ class Printer:
     def cancel_print(self):
         self._printer.cancel_print()
 
+    def pause_print(self):
+        self._printer.pause_print()
+
+    def resume_print(self):
+        self._printer.resume_print()
+
     async def connect(self):
         self._printer.connect()
 

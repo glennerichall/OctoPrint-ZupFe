@@ -5,7 +5,7 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, \
     RPC_REQUEST_TEMPERATURE_HISTORY, RPC_REQUEST_CONNECTION, RPC_REQUEST_POWER_OFF, RPC_REQUEST_POWER_ON, \
     RPC_REQUEST_PROGRESS, RPC_REQUEST_ABORT_PRINT, RPC_REQUEST_DOWNLOAD_FILE, RPC_REQUEST_SET_ACTIVE_FILE, \
     RPC_REQUEST_PRINT_ACTIVE_FILE, RPC_REQUEST_GET_STATE, RPC_REQUEST_STREAM, RPC_REQUEST_GET_FILE_LIST, \
-    get_constant_name, RPC_REQUEST_TOGGLE_POWER, RPC_REQUEST_WEBRTC
+    get_constant_name, RPC_REQUEST_TOGGLE_POWER, RPC_REQUEST_WEBRTC, RPC_REQUEST_RESUME_PRINT, RPC_REQUEST_PAUSE_PRINT
 from .request import request_get
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 
@@ -99,8 +99,20 @@ def handle_message(plugin, message, reply, reject):
 
     async def on_request_abort_print():
         state = await plugin.printer.get_state()
-        if state['state']['printing']:  # printing is boolean
+        if state['state']['printing'] or state['state']['paused']:  # printing is boolean
             plugin.printer.cancel_print()
+        reply(state)
+
+    async def on_request_resume_print():
+        state = await plugin.printer.get_state()
+        if state['state']['paused']:
+            plugin.printer.resume_print()
+        reply(state)
+
+    async def on_request_pause_print():
+        state = await plugin.printer.get_state()
+        if state['state']['printing']:
+            plugin.printer.pause_print()
         reply(state)
 
     async def on_request_download_file():
@@ -183,6 +195,8 @@ def handle_message(plugin, message, reply, reject):
         RPC_REQUEST_SET_ACTIVE_FILE: on_request_set_active_file,
         RPC_REQUEST_DOWNLOAD_FILE: on_request_download_file,
         RPC_REQUEST_ABORT_PRINT: on_request_abort_print,
+        RPC_REQUEST_RESUME_PRINT: on_request_resume_print,
+        RPC_REQUEST_PAUSE_PRINT: on_request_pause_print,
         RPC_REQUEST_PROGRESS: on_request_progress,
         RPC_REQUEST_POWER_ON: on_request_power_on,
         RPC_REQUEST_POWER_OFF: on_request_power_off,
