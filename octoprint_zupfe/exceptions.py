@@ -36,3 +36,8 @@ class NotFoundException(RequestException):
 class AuthRequiredException(RequestException):
     def __init__(self, method, url, data=None, headers=None):
         super().__init__(401, method, url, data=data, headers=headers)
+
+
+class UnAuthorizedException(RequestException):
+    def __init__(self, method, url, data=None, headers=None):
+        super().__init__(403, method, url, data=data, headers=headers)

@@ -1,6 +1,6 @@
 import logging
 
-from .exceptions import NotFoundException, AuthRequiredException, RequestException
+from .exceptions import NotFoundException, AuthRequiredException, RequestException, UnAuthorizedException
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 
@@ -33,6 +33,9 @@ class BackendActionBase:
         elif response.status() == 401:
             response.close()
             raise AuthRequiredException(method, url, data=data, headers=headers)
+        elif response.status() == 403:
+            response.close()
+            raise UnAuthorizedException(method, url, data=data, headers=headers)
         elif not response.ok():
             response.close()
             raise RequestException(response.status(), method, url, data=data, headers=headers)

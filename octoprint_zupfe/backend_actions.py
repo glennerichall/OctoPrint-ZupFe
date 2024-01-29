@@ -6,7 +6,7 @@ from .backend_actions_base import BackendActionBase
 from .constants import URL_PRINTER_TITLE, \
     URL_PRINTER_STATUS, URL_PRINTER_EVENT, URL_PRINTER_LINK, \
     URL_PRINTERS, URL_PRINTER_SNAPSHOT, EVENT_PRINTER_PROGRESS
-from .exceptions import NotFoundException, AuthRequiredException
+from .exceptions import NotFoundException, AuthRequiredException, UnAuthorizedException
 from .request import request_put
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
@@ -45,7 +45,7 @@ class BackendActions(BackendActionBase):
     async def check_uuid(self):
         try:
             await self.get_link_status()
-        except (NotFoundException, AuthRequiredException):
+        except (NotFoundException, AuthRequiredException, UnAuthorizedException) as e:
             return False
         return True
 
