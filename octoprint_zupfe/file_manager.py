@@ -1,6 +1,6 @@
 import datetime
 
-from . import FileObject
+from .file_object import FileObject
 from .utils import compute_md5
 
 

@@ -34,8 +34,8 @@ class AsyncTaskWorker:
         self._loop.close()
         self._thread.join()
 
-    def submit_coroutine(self, coroutine, *others):
+    def submit_coroutines(self, coroutine, *other_coroutines):
         self._loop_ready.wait()
         asyncio.run_coroutine_threadsafe(coroutine, self._loop)
-        for other in others:
+        for other in other_coroutines:
             asyncio.run_coroutine_threadsafe(other, self._loop)

@@ -13,6 +13,25 @@ from octoprint_zupfe.request import create_stream, create_reply, create_rejectio
 logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
+class WebSocketTransport:
+    def __init__(self, ws, ws_id):
+        self._ws = ws
+        self._ws_id = ws_id
+
+    @property
+    def uuid(self):
+        return self._ws_id
+
+    def send(self, message):
+        self._ws.send(message)
+
+    def on_close(self, callback):
+        return self._ws.on_close(callback)
+
+    def send_binary(self, message):
+        self._ws.send_binary(message)
+
+
 class WebSocketClient:
     def __init__(self, backend_ws_url, octo_id, api_key, on_message,
                  on_open=None, on_close=None, on_error=None):
@@ -26,6 +45,7 @@ class WebSocketClient:
         ssl_context.verify_mode = ssl.CERT_NONE
         # websocket.enableTrace(True)
 
+        self._close_callbacks = []
         self._thread = threading.Thread(target=self._run_forever)
 
         self._connected = False
@@ -53,6 +73,9 @@ class WebSocketClient:
         self._connected = False
         if self._on_close_callback is not None:
             self._on_close_callback()
+
+        for callback in self._close_callbacks:
+            callback(self)
 
     def _on_error(self, ws, error_message):
         logger.error(f"Websocket closed: {error_message}")
@@ -83,7 +106,16 @@ class WebSocketClient:
             else:
                 reply = create_reply(self, message)
 
-            self._on_message_callback(message, reply=reply, reject=reject)
+            content = None
+            if message.is_json:
+                content = message.json()
+
+            ws_id = None
+            if content is not None and 'wsClientId' in content:
+                ws_id = content['wsClientId']
+
+            transport = WebSocketTransport(self, ws_id)
+            self._on_message_callback(message, reply=reply, reject=reject, transport=transport)
 
     def _on_open(self, wssapp):
         logger.info('Websocket opened')
@@ -110,3 +142,7 @@ class WebSocketClient:
     def connect(self):
         self._closed = False
         self._thread.start()
+
+    def on_close(self, callback):
+        self._close_callbacks.append(callback)
+        return lambda: self._close_callbacks.remove(callback)

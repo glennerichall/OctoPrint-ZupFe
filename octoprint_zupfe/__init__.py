@@ -4,8 +4,8 @@ from __future__ import absolute_import
 import octoprint
 from octoprint.plugin import EventHandlerPlugin, AssetPlugin, ProgressPlugin, StartupPlugin, SettingsPlugin
 
-from .file_object import FileObject
 from .api import ApiBase
+from .backend import Backend
 from .backend_actions import BackendActions
 from .commands import handle_message
 from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_OCTOPRINT_SHOW_WIZARD, \
@@ -14,19 +14,21 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_OCTOP
     EVENT_PRINTER_PRINT_DONE, EVENT_PRINTER_POWER_UP, EVENT_PRINTER_POWER_DOWN
 from .events import handle_event, handle_event_async
 from .file_manager import Files
+from .file_object import FileObject
 from .frontend import Frontend
 from .message_builder import MessageBuilder
+from .mjpeg_stream_manager import MjpegStreamManager
+from .printer import Printer
 from .progress import Progress
 from .request import request_get
+from .settings import Settings
 from .snapshots import snapshots_daily_push_loop
+from .startup import initialize_backend_async, start_push_poll_loops
+from .webcam_wrapper import WebcamWrapper
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 from .worker import AsyncTaskWorker
 from .ws_actions import P2PActions
 from .zupfe_api import ZupfeApiPlugin
-from .backend import Backend
-from .printer import Printer
-from .settings import Settings
-from .startup import initialize_backend_async, start_push_poll_loops
 from .zupfe_template import ZupfeTemplate
 from .zupfe_wizard import ZupfeWizard
 
@@ -43,22 +45,57 @@ class ZupfePlugin(
 
     def __init__(self):
         super().__init__()
+        self._webcams = []
         self._host = None
         self._port = None
-        self._default_webcam = None
         self._worker = AsyncTaskWorker("Main Worker")
         self._progress = Progress(self)
         self._backend = None
         self._printerWrapper = None
         self._api = None
+        self._stream_manager = None
+
+    @property
+    def host(self):
+        return self._host
+
+    @property
+    def port(self):
+        return self._port
 
     @property
     def progress(self):
         return self._progress
 
     @property
-    def webcam(self):
-        return self._default_webcam
+    def default_snapshot_webcam(self):
+        webcams = self.snapshot_webcams
+        if len(webcams) > 0:
+            return webcams[0]
+        return None
+
+    @property
+    def default_stream_webcam(self):
+        webcams = self.stream_webcams
+        if len(webcams) > 0:
+            return webcams[0]
+        return None
+
+    @property
+    def snapshot_webcams(self):
+        webcams = []
+        for webcam in self._webcams:
+            if webcam.can_snapshot:
+                webcams.append(webcam)
+        return webcams
+
+    @property
+    def stream_webcams(self):
+        webcams = []
+        for webcam in self._webcams:
+            if webcam.can_stream:
+                webcams.append(webcam)
+        return webcams
 
     @property
     def backend(self):
@@ -71,6 +108,10 @@ class ZupfePlugin(
     @property
     def frontend(self):
         return Frontend(self._identifier, self._plugin_manager)
+
+    @property
+    def stream_manager(self):
+        return self._stream_manager
 
     @property
     def api(self):
@@ -122,6 +163,7 @@ class ZupfePlugin(
     def on_startup(self, host, port):
         self._host = host
         self._port = port
+        self._webcams = []
 
         self.logger.debug(f"Local api is accessible at http://{host}:{port}")
 
@@ -129,7 +171,9 @@ class ZupfePlugin(
         frontend_url = self.settings.get('frontend_url', 'https://zupfe.velor.ca')
         api_key = self._settings.global_get(["api", "key"])
 
-        self._default_webcam = octoprint.webcams.get_snapshot_webcam()
+        webcams = octoprint.webcams.get_webcams()
+        for webcam_name, webcam in webcams.items():
+            self._webcams.append(WebcamWrapper(webcam, self))
 
         self._backend = Backend(backend_url, frontend_url)
         self._api = ApiBase(host, port, api_key)
@@ -137,6 +181,8 @@ class ZupfePlugin(
 
         self.logger.debug(f"Using backend at {backend_url}")
         self.logger.debug(f"Using frontend at {frontend_url}")
+
+        self._stream_manager = MjpegStreamManager(self)
 
         initialize_backend_async(self)
 

@@ -5,14 +5,15 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, \
     RPC_REQUEST_TEMPERATURE_HISTORY, RPC_REQUEST_CONNECTION, RPC_REQUEST_POWER_OFF, RPC_REQUEST_POWER_ON, \
     RPC_REQUEST_PROGRESS, RPC_REQUEST_ABORT_PRINT, RPC_REQUEST_DOWNLOAD_FILE, RPC_REQUEST_SET_ACTIVE_FILE, \
     RPC_REQUEST_PRINT_ACTIVE_FILE, RPC_REQUEST_GET_STATE, RPC_REQUEST_STREAM, RPC_REQUEST_GET_FILE_LIST, \
-    get_constant_name, RPC_REQUEST_TOGGLE_POWER, RPC_REQUEST_WEBRTC, RPC_REQUEST_RESUME_PRINT, RPC_REQUEST_PAUSE_PRINT
+    get_constant_name, RPC_REQUEST_TOGGLE_POWER, RPC_REQUEST_WEBRTC, RPC_REQUEST_RESUME_PRINT, RPC_REQUEST_PAUSE_PRINT, \
+    RPC_REQUEST_START_CAMERA, RPC_REQUEST_STOP_CAMERA
 from .request import request_get
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
-def handle_message(plugin, message, reply, reject):
+def handle_message(plugin, message, reply, reject, transport):
     async def on_request_p2p():
         logger.debug("Receiving webrtc offer")
         offer = message.json()
@@ -22,8 +23,8 @@ def handle_message(plugin, message, reply, reject):
                 # if the offer is accepted, webrtc data channel will call back the lambda
                 # which in return will call back the current "handle_message" handler, letting
                 # webbsocket and webrtc use the same route for message handling.
-                p2p = await accept_webrtc_offer(lambda message, reply, reject:
-                                                handle_message(plugin, message, reply, reject), offer)
+                p2p = await accept_webrtc_offer(lambda _message, _reply, _reject, _transport:
+                                                handle_message(plugin, _message, _reply, _reject, _transport), offer)
                 answer = get_webrtc_reply(p2p)
                 logger.debug("Replying webrtc answer")
                 reply(answer)
@@ -85,6 +86,15 @@ def handle_message(plugin, message, reply, reject):
     async def on_request_state():
         state = await plugin.printer.get_state()
         active_file = state['activeFile']
+        webcams = plugin.stream_webcams
+
+        state['webcams'] = [
+            {
+                'config': webcam.config,
+                'id': webcam.id,
+                'name': webcam.name
+            } for webcam in webcams
+        ]
 
         if active_file is not None:
             state['activeFile'] = plugin.file_manager.get_file_info(active_file)
@@ -183,6 +193,24 @@ def handle_message(plugin, message, reply, reject):
         history = plugin.progress.get_temperature_history()
         reply(history)
 
+    async def on_request_start_camera():
+        content = message.json()
+        camera_id = content['cameraId']
+        added = plugin.stream_manager.start_camera(camera_id, transport)
+        if added:
+            reply(None)
+        else:
+            reject(None)
+
+    async def on_request_stop_camera():
+        content = message.json()
+        camera_id = content['cameraId']
+        removed = plugin.stream_manager.stop_camera(camera_id, transport)
+        if removed:
+            reply(None)
+        else:
+            reject(None)
+
     handlers = {
         EVENT_PRINTER_LINKED: on_linked,
         EVENT_PRINTER_UNLINKED: on_unlinked,
@@ -203,12 +231,14 @@ def handle_message(plugin, message, reply, reject):
         RPC_REQUEST_TOGGLE_POWER: on_request_toggle_power,
         RPC_REQUEST_CONNECTION: on_request_connect,
         RPC_REQUEST_TEMPERATURE_HISTORY: on_request_temperature_history,
+        RPC_REQUEST_START_CAMERA: on_request_start_camera,
+        RPC_REQUEST_STOP_CAMERA: on_request_stop_camera,
     }
     name = get_constant_name(message.command)
     handler = handlers.get(message.command)
     plugin.logger.debug("received message: %s", name)
     if handler is not None:
-        plugin.worker.submit_coroutine(handler())
+        plugin.worker.submit_coroutines(handler())
     else:
         plugin.logger.debug("Command does not exist: " + str(message.command))
         reject('Unknown request ' + str(message.command))

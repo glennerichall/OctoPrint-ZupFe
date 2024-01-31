@@ -81,3 +81,4 @@ class Backend:
         logger.debug('Connecting to ' + self._backend_ws_url)
         self._ws.connect()
         return self._ws
+

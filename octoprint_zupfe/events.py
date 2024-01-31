@@ -1,6 +1,5 @@
 import logging
 
-from octoprint_zupfe import EVENT_PRINTER_POWER_UP, EVENT_PRINTER_POWER_DOWN
 from octoprint_zupfe.backend_sync import update_status_if_changed, notify_printer_state_changed, \
     notify_power_state_changed
 
@@ -8,7 +7,7 @@ logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 def handle_event_async(plugin, event, payload):
-    plugin.worker.submit_coroutine(handle_event(plugin, event, payload))
+    plugin.worker.submit_coroutines(handle_event(plugin, event, payload))
 
 
 async def handle_event(plugin, event, payload):
