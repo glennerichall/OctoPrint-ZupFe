@@ -17,13 +17,15 @@ from .file_manager import Files
 from .file_object import FileObject
 from .frontend import Frontend
 from .message_builder import MessageBuilder
-from .mjpeg_stream_manager import MjpegStreamManager
+from .mjpeg_manager import MjpegStreamManager
 from .printer import Printer
 from .progress import Progress
+from .progress_manager import ProgressManager
 from .request import request_get
 from .settings import Settings
 from .snapshots import snapshots_daily_push_loop
 from .startup import initialize_backend_async, start_push_poll_loops
+from .temperature_manager import TemperatureManager
 from .webcam_wrapper import WebcamWrapper
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 from .worker import AsyncTaskWorker
@@ -53,7 +55,9 @@ class ZupfePlugin(
         self._backend = None
         self._printerWrapper = None
         self._api = None
-        self._stream_manager = None
+        self._mjpeg_manager = None
+        self._progress_manager = None
+        self._temperature_manager = None
 
     @property
     def host(self):
@@ -110,8 +114,17 @@ class ZupfePlugin(
         return Frontend(self._identifier, self._plugin_manager)
 
     @property
-    def stream_manager(self):
-        return self._stream_manager
+    def mjpeg_manager(self):
+        return self._mjpeg_manager
+
+    @property
+    def temperature_manager(self):
+        return self._temperature_manager
+
+    @property
+    def progress_manager(self):
+        return self._progress_manager
+
 
     @property
     def api(self):
@@ -182,7 +195,9 @@ class ZupfePlugin(
         self.logger.debug(f"Using backend at {backend_url}")
         self.logger.debug(f"Using frontend at {frontend_url}")
 
-        self._stream_manager = MjpegStreamManager(self)
+        self._mjpeg_manager = MjpegStreamManager(self)
+        self._progress_manager = ProgressManager(self)
+        self._temperature_manager = TemperatureManager(self)
 
         initialize_backend_async(self)
 

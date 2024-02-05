@@ -1,0 +1,87 @@
+import logging
+import threading
+from abc import ABC, abstractmethod
+
+logger = logging.getLogger("octoprint.plugins.zupfe")
+
+
+def should_evict_transport(camera_uuid, recipient, error=None):
+    transport = recipient['transport']
+    if recipient['missed_frames'] > 100:
+        logger.debug("Unable to send stream %s to %s more than 100 times consecutively, evicting transport" % (
+            camera_uuid, transport.uuid))
+        return True
+    return False
+
+
+class PollingThread(ABC):
+    def __init__(self, stop_if_no_recipients=True):
+        self._recipients = {}
+        self._thread = None
+        self._done = False
+        self._stop_if_no_recipients = stop_if_no_recipients
+
+    def add_transport(self, transport):
+        uuid = transport.uuid
+
+        if uuid is not None and uuid not in self._recipients:
+            remove_on_close_handler = transport.on_close(lambda _transport: self.remove_transport(_transport))
+            self._recipients[uuid] = {
+                'transport': transport,
+                'remove_callback': remove_on_close_handler,
+                'missed_frames': 0
+            }
+            return True
+
+        return False
+
+    @property
+    def has_recipients(self):
+        return len(self._recipients) > 0
+
+    @property
+    def running(self):
+        return not self._done
+
+    def remove_transport(self, transport):
+        uuid = transport.uuid
+        if uuid in self._recipients:
+            recipient = self._recipients.pop(uuid)
+            recipient['remove_callback']()
+            if not self.has_recipients and self._stop_if_no_recipients:
+                self.stop()
+            return True
+        return False
+
+    def validate_and_evict_transport(self, camera_uuid, recipient, error=None):
+        if should_evict_transport(camera_uuid, recipient, error):
+            self.remove_transport(recipient['transport'])
+
+    def start(self):
+        self._done = False
+        thread = threading.Thread(target=self.poll)
+        self._thread = thread
+
+        # daemon mode is mandatory so threads get killed when server shuts down
+        thread.daemon = True
+        thread.start()
+
+    def stop(self):
+        self._thread = None
+        self._done = True
+
+    def send_frame(self, frame):
+        for uuid in list(self._recipients.keys()):  # Create a copy of keys to iterate over
+            recipient = self._recipients[uuid]
+            transport = recipient['transport']
+            try:
+                transport.send_binary(frame)
+                recipient['missed_frames'] = 0
+            except Exception as e:
+                logger.debug("Unable to send stream from %s to %s: %s" % (uuid, transport.uuid, e))
+                recipient['missed_frames'] = recipient['missed_frames'] + 1
+                self.validate_and_evict_transport(uuid, recipient, e)
+
+    @abstractmethod
+    def poll(self):
+        pass

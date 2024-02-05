@@ -198,7 +198,7 @@ def handle_message(plugin, message, reply, reject, transport):
         content = message.json()
         camera_id = content['cameraId']
         try:
-            added = plugin.stream_manager.start_camera(camera_id, transport)
+            added = plugin.mjpeg_manager.start_camera(camera_id, transport)
             if added:
                 reply(RPC_RESPONSE_SUCCESS)
             else:
@@ -210,13 +210,16 @@ def handle_message(plugin, message, reply, reject, transport):
         content = message.json()
         camera_id = content['cameraId']
         try:
-            removed = plugin.stream_manager.stop_camera(camera_id, transport)
+            removed = plugin.mjpeg_manager.stop_camera(camera_id, transport)
             if removed:
                 reply(RPC_RESPONSE_SUCCESS)
             else:
                 reply(RPC_RESPONSE_NOOP)
         except Exception as e:
             reject(str(e))
+
+    async def on_request_receive_progress():
+
 
     event_handlers = {
         EVENT_PRINTER_LINKED: on_linked,
