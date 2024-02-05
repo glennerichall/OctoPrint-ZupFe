@@ -3,6 +3,7 @@ import logging
 import ssl
 import threading
 import time
+import uuid
 
 import websocket
 
@@ -57,12 +58,18 @@ class WebSocketClient:
         self._on_close_callback = on_close
         self._on_error_callback = on_error
 
+        self._uuid = str(uuid.uuid4())
+
         self._ws = websocket.WebSocketApp(backend_ws_url,
                                           header=headers,
                                           on_open=self._on_open,
                                           on_message=self._on_message,
                                           on_error=self._on_error,
                                           on_close=self._on_close)
+
+    @property
+    def uuid(self):
+        return self._uuid
 
     @property
     def is_connected(self):
@@ -114,7 +121,7 @@ class WebSocketClient:
             if content is not None and 'wsClientId' in content:
                 ws_id = content['wsClientId']
 
-            transport = WebSocketTransport(self, ws_id)
+            transport = self
             self._on_message_callback(message, reply=reply, reject=reject, transport=transport)
 
     def _on_open(self, wssapp):

@@ -1,4 +1,5 @@
 import logging
+import uuid
 from asyncio import Future
 from random import random
 
@@ -44,7 +45,7 @@ class WebrtcClient:
     def __init__(self, channel):
         self.channel = channel
         self._close_callbacks = []
-        self._uuid = random.randint(1, max_safe_integer_js - 1)
+        self._uuid = str(uuid.uuid4())
 
         @self.channel.on("close")
         def on_close():

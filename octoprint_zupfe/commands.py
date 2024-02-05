@@ -5,8 +5,9 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, \
     RPC_REQUEST_TEMPERATURE_HISTORY, RPC_REQUEST_CONNECTION, RPC_REQUEST_POWER_OFF, RPC_REQUEST_POWER_ON, \
     RPC_REQUEST_PROGRESS, RPC_REQUEST_ABORT_PRINT, RPC_REQUEST_DOWNLOAD_FILE, RPC_REQUEST_SET_ACTIVE_FILE, \
     RPC_REQUEST_PRINT_ACTIVE_FILE, RPC_REQUEST_GET_STATE, RPC_REQUEST_STREAM, RPC_REQUEST_GET_FILE_LIST, \
-    get_constant_name, RPC_REQUEST_TOGGLE_POWER, RPC_REQUEST_WEBRTC, RPC_REQUEST_RESUME_PRINT, RPC_REQUEST_PAUSE_PRINT, \
-    RPC_REQUEST_START_CAMERA, RPC_REQUEST_STOP_CAMERA
+    RPC_REQUEST_TOGGLE_POWER, RPC_REQUEST_WEBRTC, RPC_REQUEST_RESUME_PRINT, RPC_REQUEST_PAUSE_PRINT, \
+    RPC_REQUEST_START_CAMERA, RPC_REQUEST_STOP_CAMERA, RPC_RESPONSE_SUCCESS, RPC_RESPONSE_NOOP, get_event_name, \
+    get_command_name
 from .request import request_get
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 
@@ -196,25 +197,33 @@ def handle_message(plugin, message, reply, reject, transport):
     async def on_request_start_camera():
         content = message.json()
         camera_id = content['cameraId']
-        added = plugin.stream_manager.start_camera(camera_id, transport)
-        if added:
-            reply(None)
-        else:
-            reject(None)
+        try:
+            added = plugin.stream_manager.start_camera(camera_id, transport)
+            if added:
+                reply(RPC_RESPONSE_SUCCESS)
+            else:
+                reply(RPC_RESPONSE_NOOP)
+        except Exception as e:
+            reject(str(e))
 
     async def on_request_stop_camera():
         content = message.json()
         camera_id = content['cameraId']
-        removed = plugin.stream_manager.stop_camera(camera_id, transport)
-        if removed:
-            reply(None)
-        else:
-            reject(None)
+        try:
+            removed = plugin.stream_manager.stop_camera(camera_id, transport)
+            if removed:
+                reply(RPC_RESPONSE_SUCCESS)
+            else:
+                reply(RPC_RESPONSE_NOOP)
+        except Exception as e:
+            reject(str(e))
 
-    handlers = {
+    event_handlers = {
         EVENT_PRINTER_LINKED: on_linked,
         EVENT_PRINTER_UNLINKED: on_unlinked,
+    }
 
+    rpc_handlers = {
         RPC_REQUEST_GET_FILE_LIST: on_request_file_list,
         RPC_REQUEST_STREAM: on_request_file_stream,
         RPC_REQUEST_WEBRTC: on_request_p2p,
@@ -234,8 +243,16 @@ def handle_message(plugin, message, reply, reject, transport):
         RPC_REQUEST_START_CAMERA: on_request_start_camera,
         RPC_REQUEST_STOP_CAMERA: on_request_stop_camera,
     }
-    name = get_constant_name(message.command)
-    handler = handlers.get(message.command)
+
+    name = None
+    handler = None
+    if message.is_event:
+        name = get_event_name(message.event)
+        handler = event_handlers.get(message.event)
+    elif message.is_command:
+        name = get_command_name(message.command)
+        handler = rpc_handlers.get(message.command)
+
     plugin.logger.debug("received message: %s", name)
     if handler is not None:
         plugin.worker.submit_coroutines(handler())
