@@ -1,10 +1,6 @@
-import logging
-import random
-import threading
-
 import requests
 
-from .message_builder import MessageBuilder, max_safe_integer_js
+from .message_builder import MessageBuilder
 from .polling_thread import PollingThread
 
 
@@ -15,55 +11,17 @@ class MjpegCameraThread(PollingThread):
         self._webcam = webcam
 
     def poll(self):
-        mjpeg_url = self._webcam.stream_url
         stream_id = self._webcam.id
+        builder = MessageBuilder()
 
-        while not self._done:
-            try:
-                self._plugin.logger.debug("Getting mjpeg stream for camera %s at %s" % (stream_id, mjpeg_url))
-                resp = requests.get(mjpeg_url, stream=True)
-                stream = b''
-                builder = MessageBuilder()
+        def receive_frame(frame):
+            message = builder.new_mjpeg_frame(frame, stream_id)
+            self.send_frame(message['buffer'])
 
-                import time
+        def is_done():
+            return self._done
 
-                # Initialize the start time and frame counter
-                # start_time = time.time()
-                # frame_count = 0
-
-                for chunk in resp.iter_content(chunk_size=1024):
-                    if self._done:
-                        break
-
-                    stream += chunk
-                    # Check if the buffer contains the start and end of a frame
-                    start = stream.find(b'\xff\xd8')
-                    end = stream.find(b'\xff\xd9', start)
-
-                    if start != -1 and end != -1:
-                        end = end + 2
-                        frame = stream[start:end]
-                        stream = stream[end:]
-                        message = builder.new_mjpeg_frame(frame, stream_id)
-
-                        # Frame successfully processed, increment frame count
-                        # frame_count += 1
-
-                        if self._done:
-                            break
-
-                        self.send_frame(message['buffer'])
-
-                    # Periodically calculate FPS
-                    # if time.time() - start_time >= 1:  # Every second
-                    #     fps = frame_count / (time.time() - start_time)
-                    #     print(f"FPS: {fps}")
-                    #     # Reset counters for the next measurement
-                    #     start_time = time.time()
-                    #     frame_count = 0
-
-            except Exception as e:
-                self._plugin.logger.debug("Unable to read stream from %s: %s" % (mjpeg_url, e))
+        self._webcam.read_mjpeg_frames(receive_frame, is_done)
 
 
 class MjpegStreamManager:

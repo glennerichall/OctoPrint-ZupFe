@@ -58,6 +58,7 @@ class ZupfePlugin(
         self._mjpeg_manager = None
         self._progress_manager = None
         self._temperature_manager = None
+        self._stream_webcams = []
 
     @property
     def host(self):
@@ -95,11 +96,7 @@ class ZupfePlugin(
 
     @property
     def stream_webcams(self):
-        webcams = []
-        for webcam in self._webcams:
-            if webcam.can_stream:
-                webcams.append(webcam)
-        return webcams
+        return self._stream_webcams
 
     @property
     def backend(self):
@@ -124,7 +121,6 @@ class ZupfePlugin(
     @property
     def progress_manager(self):
         return self._progress_manager
-
 
     @property
     def api(self):
@@ -184,9 +180,16 @@ class ZupfePlugin(
         frontend_url = self.settings.get('frontend_url', 'https://zupfe.velor.ca')
         api_key = self._settings.global_get(["api", "key"])
 
+        # Wrap all webcams into WebcamWrapper
         webcams = octoprint.webcams.get_webcams()
         for webcam_name, webcam in webcams.items():
             self._webcams.append(WebcamWrapper(webcam, self))
+
+        # Precompute streamable webcams
+        self._stream_webcams = []
+        for webcam in self._webcams:
+            if webcam.can_stream and webcam.validate_url_as_stream():
+                self._stream_webcams.append(webcam)
 
         self._backend = Backend(backend_url, frontend_url)
         self._api = ApiBase(host, port, api_key)
