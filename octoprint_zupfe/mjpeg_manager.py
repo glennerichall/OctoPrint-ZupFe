@@ -28,8 +28,8 @@ class MjpegCameraThread(PollingThread):
                 import time
 
                 # Initialize the start time and frame counter
-                start_time = time.time()
-                frame_count = 0
+                # start_time = time.time()
+                # frame_count = 0
 
                 for chunk in resp.iter_content(chunk_size=1024):
                     if self._done:
@@ -47,7 +47,7 @@ class MjpegCameraThread(PollingThread):
                         message = builder.new_mjpeg_frame(frame, stream_id)
 
                         # Frame successfully processed, increment frame count
-                        frame_count += 1
+                        # frame_count += 1
 
                         if self._done:
                             break
@@ -55,12 +55,12 @@ class MjpegCameraThread(PollingThread):
                         self.send_frame(message['buffer'])
 
                     # Periodically calculate FPS
-                    if time.time() - start_time >= 1:  # Every second
-                        fps = frame_count / (time.time() - start_time)
-                        print(f"FPS: {fps}")
-                        # Reset counters for the next measurement
-                        start_time = time.time()
-                        frame_count = 0
+                    # if time.time() - start_time >= 1:  # Every second
+                    #     fps = frame_count / (time.time() - start_time)
+                    #     print(f"FPS: {fps}")
+                    #     # Reset counters for the next measurement
+                    #     start_time = time.time()
+                    #     frame_count = 0
 
             except Exception as e:
                 self._plugin.logger.debug("Unable to read stream from %s: %s" % (mjpeg_url, e))

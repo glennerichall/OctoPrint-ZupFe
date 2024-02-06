@@ -7,7 +7,8 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, \
     RPC_REQUEST_PRINT_ACTIVE_FILE, RPC_REQUEST_GET_STATE, RPC_REQUEST_STREAM, RPC_REQUEST_GET_FILE_LIST, \
     RPC_REQUEST_TOGGLE_POWER, RPC_REQUEST_WEBRTC, RPC_REQUEST_RESUME_PRINT, RPC_REQUEST_PAUSE_PRINT, \
     RPC_REQUEST_START_CAMERA, RPC_REQUEST_STOP_CAMERA, RPC_RESPONSE_SUCCESS, RPC_RESPONSE_NOOP, get_event_name, \
-    get_command_name
+    get_command_name, RPC_REQUEST_RECEIVE_PROGRESS, RPC_REQUEST_STOP_PROGRESS, RPC_REQUEST_STOP_TEMPERATURES, \
+    RPC_REQUEST_READ_TEMPERATURES
 from .request import request_get
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 
@@ -219,7 +220,44 @@ def handle_message(plugin, message, reply, reject, transport):
             reject(str(e))
 
     async def on_request_receive_progress():
+        try:
+            added = plugin.progress_manager.add_recipient(transport)
+            if added:
+                reply(RPC_RESPONSE_SUCCESS)
+            else:
+                reply(RPC_RESPONSE_NOOP)
+        except Exception as e:
+            reject(str(e))
 
+    async def on_request_stop_progress():
+        try:
+            remove = plugin.progress_manager.remove_recipient(transport)
+            if remove:
+                reply(RPC_RESPONSE_SUCCESS)
+            else:
+                reply(RPC_RESPONSE_NOOP)
+        except Exception as e:
+            reject(str(e))
+
+    async def on_request_read_temperatures():
+        try:
+            added = plugin.temperature_manager.add_recipient(transport)
+            if added:
+                reply(RPC_RESPONSE_SUCCESS)
+            else:
+                reply(RPC_RESPONSE_NOOP)
+        except Exception as e:
+            reject(str(e))
+
+    async def on_request_stop_temperatures():
+        try:
+            removed = plugin.temperature_manager.remove_recipient(transport)
+            if removed:
+                reply(RPC_RESPONSE_SUCCESS)
+            else:
+                reply(RPC_RESPONSE_NOOP)
+        except Exception as e:
+            reject(str(e))
 
     event_handlers = {
         EVENT_PRINTER_LINKED: on_linked,
@@ -245,6 +283,10 @@ def handle_message(plugin, message, reply, reject, transport):
         RPC_REQUEST_TEMPERATURE_HISTORY: on_request_temperature_history,
         RPC_REQUEST_START_CAMERA: on_request_start_camera,
         RPC_REQUEST_STOP_CAMERA: on_request_stop_camera,
+        RPC_REQUEST_RECEIVE_PROGRESS: on_request_receive_progress,
+        RPC_REQUEST_STOP_PROGRESS: on_request_stop_progress,
+        RPC_REQUEST_READ_TEMPERATURES: on_request_read_temperatures,
+        RPC_REQUEST_STOP_TEMPERATURES: on_request_stop_temperatures,
     }
 
     name = None

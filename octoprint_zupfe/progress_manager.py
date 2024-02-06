@@ -18,7 +18,7 @@ class ProgressThread(PollingThread):
 
                 time.sleep(0.2)  # send progress in short periods so ui has no hiccups
             except Exception as e:
-                self._plugin.logger.debug('Error while taking or sending temperature ' + str(e))
+                self._plugin.logger.debug('Error while taking or sending progress ' + str(e))
                 time.sleep(2)
 
 
@@ -33,12 +33,14 @@ class ProgressManager:
             self._thread = ProgressThread(self._plugin)
             self._thread.start()
 
-        self._thread.add_transport(transport)
+        return self._thread.add_transport(transport)
 
     def remove_recipient(self, transport):
-        self._thread.remove_transport(transport)
+        result = self._thread.remove_transport(transport)
         if not self._thread.has_recipients:
             self._plugin.logger.debug('No more recipients in progress thread, stopping it')
             self._thread.stop()
             self._thread = None
+
+        return result
 
