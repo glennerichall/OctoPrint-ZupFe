@@ -1,7 +1,5 @@
-import requests
-
-from .message_builder import MessageBuilder
-from .polling_thread import PollingThread
+from octoprint_zupfe.messaging.message_builder import MessageBuilder
+from octoprint_zupfe.loops.polling_thread import PollingThread
 
 
 class MjpegCameraThread(PollingThread):
@@ -29,7 +27,7 @@ class MjpegStreamManager:
         self._plugin = plugin
         self._threads = {}
 
-    def start_camera(self, camera_id, transport):
+    def start_camera(self, camera_id, transport, interval=1):
         webcam_to_stream = None
         for webcam in self._plugin.stream_webcams:
             if webcam.id == camera_id:
@@ -42,7 +40,7 @@ class MjpegStreamManager:
                 self._threads[camera_id] = MjpegCameraThread(webcam_to_stream, self._plugin)
                 self._threads[camera_id].start()
 
-            return self._threads[camera_id].add_transport(transport)
+            return self._threads[camera_id].add_transport(transport, interval)
 
         return False
 

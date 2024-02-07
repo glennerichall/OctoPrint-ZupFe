@@ -1,6 +1,6 @@
 import logging
 
-from octoprint_zupfe.backend_sync import update_status_if_changed, notify_printer_state_changed, \
+from octoprint_zupfe.backend.backend_sync import update_status_if_changed, notify_printer_state_changed, \
     notify_power_state_changed
 
 logger = logging.getLogger("octoprint.plugins.zupfe")

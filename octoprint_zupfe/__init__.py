@@ -5,31 +5,31 @@ import octoprint
 from octoprint.plugin import EventHandlerPlugin, AssetPlugin, ProgressPlugin, StartupPlugin, SettingsPlugin
 
 from .api import ApiBase
-from .backend import Backend
-from .backend_actions import BackendActions
+from octoprint_zupfe.backend.backend import Backend
+from octoprint_zupfe.backend.backend_actions import BackendActions
 from .commands import handle_message
 from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, EVENT_OCTOPRINT_SHOW_WIZARD, \
     EVENT_PRINTER_FILES_UPDATED, EVENT_PRINTER_FILE_SELECTED, EVENT_PRINTER_PRINTING, \
     EVENT_PRINTER_PAUSED, EVENT_PRINTER_CANCELED, EVENT_PRINTER_OPERATIONAL, \
     EVENT_PRINTER_PRINT_DONE, EVENT_PRINTER_POWER_UP, EVENT_PRINTER_POWER_DOWN
 from .events import handle_event, handle_event_async
-from .file_manager import Files
-from .file_object import FileObject
+from octoprint_zupfe.wrappers.file_manager import Files
+from octoprint_zupfe.wrappers.file_object import FileObject
 from .frontend import Frontend
-from .message_builder import MessageBuilder
-from .mjpeg_manager import MjpegStreamManager
-from .printer import Printer
+from octoprint_zupfe.messaging.message_builder import MessageBuilder
+from octoprint_zupfe.loops.mjpeg_manager import MjpegStreamManager
+from octoprint_zupfe.wrappers.printer import Printer
 from .progress import Progress
-from .progress_manager import ProgressManager
-from .request import request_get
-from .settings import Settings
-from .snapshots import snapshots_daily_push_loop
+from octoprint_zupfe.loops.progress_manager import ProgressManager
+from octoprint_zupfe.transport.request import request_get
+from octoprint_zupfe.wrappers.settings import Settings
+from octoprint_zupfe.loops.snapshots import snapshots_daily_push_loop
 from .startup import start_push_poll_loops, initialize_plugin
-from .temperature_manager import TemperatureManager
-from .webcam_wrapper import WebcamWrapper
-from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
+from octoprint_zupfe.loops.temperature_manager import TemperatureManager
+from octoprint_zupfe.wrappers.webcam_wrapper import WebcamWrapper
+from octoprint_zupfe.transport.webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 from .worker import AsyncTaskWorker
-from .ws_actions import P2PActions
+from octoprint_zupfe.messaging.message_factory import MessageFactory
 from .zupfe_api import ZupfeApiPlugin
 from .zupfe_template import ZupfeTemplate
 from .zupfe_wizard import ZupfeWizard
@@ -161,7 +161,7 @@ class ZupfePlugin(
     def p2p(self):
         if self._backend is None:
             return None
-        return P2PActions(self)
+        return MessageFactory(self)
 
     @property
     def transport(self):

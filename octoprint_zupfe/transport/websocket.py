@@ -1,4 +1,3 @@
-import json
 import logging
 import ssl
 import threading
@@ -8,8 +7,8 @@ import uuid
 import websocket
 
 from octoprint_zupfe.constants import RPC_REQUEST_STREAM
-from octoprint_zupfe.message_builder import MessageBuilder
-from octoprint_zupfe.request import create_stream, create_reply, create_rejection
+from octoprint_zupfe.messaging.message_builder import MessageBuilder
+from octoprint_zupfe.transport.request import create_stream, create_reply, create_rejection
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 

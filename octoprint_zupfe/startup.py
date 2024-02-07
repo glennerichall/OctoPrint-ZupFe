@@ -1,7 +1,7 @@
 from .commands import handle_message
-from .snapshots import snapshots_daily_push_loop
+from octoprint_zupfe.loops.snapshots import snapshots_daily_push_loop
 from .worker import AsyncTaskWorker
-from .backend_sync import update_status_if_changed, notify_power_state_changed
+from octoprint_zupfe.backend.backend_sync import update_status_if_changed
 
 
 def start_push_poll_loops(plugin):

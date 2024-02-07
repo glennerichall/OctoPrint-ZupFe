@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from .constants import MESSAGE_JSON, MESSAGE_EMPTY, MESSAGE_BINARY, MESSAGE_STRING, MESSAGE_EVENT, \
+from octoprint_zupfe.constants import MESSAGE_JSON, MESSAGE_EMPTY, MESSAGE_BINARY, MESSAGE_STRING, MESSAGE_EVENT, \
     MESSAGE_COMMAND, MESSAGE_STREAM, MESSAGE_REPLY, MESSAGE_MJPEG
 from .message_coder import decode_json, decode_string
 

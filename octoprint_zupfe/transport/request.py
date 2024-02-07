@@ -3,7 +3,7 @@ import logging
 
 import aiohttp
 
-from octoprint_zupfe.message_builder import MessageBuilder
+from octoprint_zupfe.messaging.message_builder import MessageBuilder
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 

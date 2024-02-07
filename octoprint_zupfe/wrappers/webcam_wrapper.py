@@ -4,8 +4,8 @@ import urllib.parse
 import aiohttp
 import requests
 
-from .request import request_get
-from .message_builder import max_safe_integer_js
+from octoprint_zupfe.transport.request import request_get
+from octoprint_zupfe.messaging.message_builder import max_safe_integer_js
 
 
 class WebcamWrapper:

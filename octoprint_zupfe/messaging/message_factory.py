@@ -1,7 +1,7 @@
 from octoprint_zupfe.constants import EVENT_PRINTER_PROGRESS, EVENT_PRINTER_TEMPERATURE
 
 
-class P2PActions:
+class MessageFactory:
     def __init__(self, plugin):
         self._plugin = plugin
 

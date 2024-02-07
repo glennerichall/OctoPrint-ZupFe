@@ -1,9 +1,8 @@
 import logging
 import uuid
 from asyncio import Future
-from random import random
 
-from octoprint_zupfe.message_builder import MessageBuilder, max_safe_integer_js
+from octoprint_zupfe.messaging.message_builder import MessageBuilder
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 
@@ -27,8 +26,8 @@ except ImportError as e:
         def __init__(self, *args, **kwargs):
             raise NotImplementedError("RTCSessionDescription is not available due to import error")
 
-from .constants import RPC_REQUEST_STREAM
-from .request import create_reply, create_stream, create_rejection
+from octoprint_zupfe.constants import RPC_REQUEST_STREAM
+from octoprint_zupfe.transport.request import create_reply, create_stream, create_rejection
 
 
 # logger = logging.getLogger('aiortc')

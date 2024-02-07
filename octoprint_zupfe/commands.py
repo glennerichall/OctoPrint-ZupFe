@@ -9,8 +9,8 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, \
     RPC_REQUEST_START_CAMERA, RPC_REQUEST_STOP_CAMERA, RPC_RESPONSE_SUCCESS, RPC_RESPONSE_NOOP, get_event_name, \
     get_command_name, RPC_REQUEST_RECEIVE_PROGRESS, RPC_REQUEST_STOP_PROGRESS, RPC_REQUEST_STOP_TEMPERATURES, \
     RPC_REQUEST_READ_TEMPERATURES
-from .request import request_get
-from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
+from octoprint_zupfe.transport.request import request_get
+from octoprint_zupfe.transport.webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 
@@ -196,10 +196,11 @@ def handle_message(plugin, message, reply, reject, transport):
         reply(history)
 
     async def on_request_start_camera():
-        content = message.json()
-        camera_id = content['cameraId']
         try:
-            added = plugin.mjpeg_manager.start_camera(camera_id, transport)
+            content = message.json()
+            camera_id = content['cameraId']
+            interval = content.get('interval', 1)
+            added = plugin.mjpeg_manager.start_camera(camera_id, transport, interval)
             if added:
                 reply(RPC_RESPONSE_SUCCESS)
             else:
@@ -208,9 +209,9 @@ def handle_message(plugin, message, reply, reject, transport):
             reject(str(e))
 
     async def on_request_stop_camera():
-        content = message.json()
-        camera_id = content['cameraId']
         try:
+            content = message.json()
+            camera_id = content['cameraId']
             removed = plugin.mjpeg_manager.stop_camera(camera_id, transport)
             if removed:
                 reply(RPC_RESPONSE_SUCCESS)
@@ -221,12 +222,12 @@ def handle_message(plugin, message, reply, reject, transport):
 
     async def on_request_receive_progress():
         try:
-            is_fast = False
+            interval = None
             if message.is_json:
                 content = message.json()
-                if 'isFast' in content:
-                    is_fast = content['isFast']
-            added = plugin.progress_manager.add_recipient(transport, is_fast)
+                interval = content.get('interval', 1)
+
+            added = plugin.progress_manager.add_recipient(transport, interval)
             if added:
                 reply(RPC_RESPONSE_SUCCESS)
             else:
@@ -236,12 +237,7 @@ def handle_message(plugin, message, reply, reject, transport):
 
     async def on_request_stop_progress():
         try:
-            is_fast = False
-            if message.is_json:
-                content = message.json()
-                if 'isFast' in content:
-                    is_fast = content['isFast']
-            remove = plugin.progress_manager.remove_recipient(transport, is_fast)
+            remove = plugin.progress_manager.remove_recipient(transport)
             if remove:
                 reply(RPC_RESPONSE_SUCCESS)
             else:
@@ -251,7 +247,12 @@ def handle_message(plugin, message, reply, reject, transport):
 
     async def on_request_read_temperatures():
         try:
-            added = plugin.temperature_manager.add_recipient(transport)
+            interval = None
+            if message.is_json:
+                content = message.json()
+                interval = content.get('interval', 1)
+
+            added = plugin.temperature_manager.add_recipient(transport, interval)
             if added:
                 reply(RPC_RESPONSE_SUCCESS)
             else:

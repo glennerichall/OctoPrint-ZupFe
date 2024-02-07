@@ -1,7 +1,7 @@
 import datetime
 
-from .file_object import FileObject
-from .utils import compute_md5
+from octoprint_zupfe.wrappers.file_object import FileObject
+from octoprint_zupfe.utils import compute_md5
 
 
 class Files:

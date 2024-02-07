@@ -1,6 +1,6 @@
 import logging
 
-from .request import request
+from octoprint_zupfe.transport.request import request
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 

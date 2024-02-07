@@ -2,8 +2,6 @@ import flask
 import octoprint
 from flask import jsonify
 
-from octoprint_zupfe.backend_actions import BackendActions
-
 
 class ZupfeApiPlugin(octoprint.plugin.BlueprintPlugin):
 

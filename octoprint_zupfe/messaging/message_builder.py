@@ -1,11 +1,10 @@
 import random
-import uuid
 import time
 
 from octoprint_zupfe.constants import MESSAGE_EMPTY, MESSAGE_JSON, MESSAGE_STRING, MESSAGE_BINARY, MESSAGE_REPLY, \
     MESSAGE_EVENT, MESSAGE_COMMAND, MESSAGE_STREAM, MESSAGE_REJECT, MESSAGE_MJPEG
-from octoprint_zupfe.message_coder import MessageCoderV1, encode_json, encode_string
-from octoprint_zupfe.message_wrapper import MessageWrapper
+from octoprint_zupfe.messaging.message_coder import MessageCoderV1, encode_json, encode_string
+from octoprint_zupfe.messaging.message_wrapper import MessageWrapper
 
 # JavaScript's MAX_SAFE_INTEGER is 2^53 - 1
 max_safe_integer_js = 2 ** 53 - 1

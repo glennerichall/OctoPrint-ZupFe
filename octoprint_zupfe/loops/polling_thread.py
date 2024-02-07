@@ -1,5 +1,6 @@
 import logging
 import threading
+import time
 from abc import ABC, abstractmethod
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
@@ -19,6 +20,7 @@ class PollingThread(ABC):
         self._recipients = {}
         self._thread = None
         self._done = False
+        self._epoch = 0
         self._stop_if_no_recipients = stop_if_no_recipients
 
     def add_transport(self, transport, interval=1):
@@ -72,18 +74,52 @@ class PollingThread(ABC):
         self._done = True
 
     def send_frame(self, frame):
+        self._epoch = self._epoch + 1
         for uuid in list(self._recipients.keys()):  # Create a copy of keys to iterate over
             recipient = self._recipients[uuid]
             transport = recipient['transport']
             interval = recipient['interval']
-            try:
-                transport.send_binary(frame)
-                recipient['missed_frames'] = 0
-            except Exception as e:
-                logger.debug("Unable to send stream from %s to %s: %s" % (uuid, transport.uuid, e))
-                recipient['missed_frames'] = recipient['missed_frames'] + 1
-                self.validate_and_evict_transport(uuid, recipient, e)
+            if self._epoch % interval == 0:
+                try:
+                    transport.send_binary(frame)
+                    recipient['missed_frames'] = 0
+                except Exception as e:
+                    logger.debug("Unable to send stream from %s to %s: %s" % (uuid, transport.uuid, e))
+                    recipient['missed_frames'] = recipient['missed_frames'] + 1
+                    self.validate_and_evict_transport(uuid, recipient, e)
 
     @abstractmethod
     def poll(self):
         pass
+
+
+class PollingThreadWithInterval(PollingThread):
+    def __init__(self, stop_if_no_recipients=True, interval=1):
+        super().__init__(stop_if_no_recipients)
+        self._interval = interval
+
+    def on_polling_started(self):
+        pass
+
+    @abstractmethod
+    def poll_message(self):
+        pass
+
+    def on_polling_error(self, error):
+        pass
+
+    def on_polling_done(self):
+        pass
+
+    def poll(self):
+        self.on_polling_started()
+        while not self._done:
+            try:
+                message = self.poll_message()
+                self.send_frame(message['buffer'])
+                time.sleep(self._interval)
+            except Exception as e:
+                self.on_polling_error(e)
+                time.sleep(2)
+
+        self.on_polling_done()

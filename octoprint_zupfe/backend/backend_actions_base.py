@@ -1,6 +1,6 @@
 import logging
 
-from .exceptions import NotFoundException, AuthRequiredException, RequestException, UnAuthorizedException
+from octoprint_zupfe.exceptions import NotFoundException, AuthRequiredException, RequestException, UnAuthorizedException
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 

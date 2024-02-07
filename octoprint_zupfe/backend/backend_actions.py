@@ -1,13 +1,12 @@
-import json
 import logging
 from urllib.parse import urlencode
 
-from .backend_actions_base import BackendActionBase
-from .constants import URL_PRINTER_TITLE, \
+from octoprint_zupfe.backend.backend_actions_base import BackendActionBase
+from octoprint_zupfe.constants import URL_PRINTER_TITLE, \
     URL_PRINTER_STATUS, URL_PRINTER_EVENT, URL_PRINTER_LINK, \
-    URL_PRINTERS, URL_PRINTER_SNAPSHOT, EVENT_PRINTER_PROGRESS
-from .exceptions import NotFoundException, AuthRequiredException, UnAuthorizedException
-from .request import request_put
+    URL_PRINTERS, URL_PRINTER_SNAPSHOT
+from octoprint_zupfe.exceptions import NotFoundException, AuthRequiredException, UnAuthorizedException
+from octoprint_zupfe.transport.request import request_put
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 

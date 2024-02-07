@@ -1,7 +1,7 @@
 import logging
 
-from .request import request_get, request
-from .websocket import WebSocketClient
+from octoprint_zupfe.transport.request import request_get, request
+from octoprint_zupfe.transport.websocket import WebSocketClient
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 
