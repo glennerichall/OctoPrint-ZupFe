@@ -21,12 +21,13 @@ class PollingThread(ABC):
         self._done = False
         self._stop_if_no_recipients = stop_if_no_recipients
 
-    def add_transport(self, transport):
+    def add_transport(self, transport, interval=1):
         uuid = transport.uuid
 
         if uuid is not None and uuid not in self._recipients:
             remove_on_close_handler = transport.on_close(lambda _transport: self.remove_transport(_transport))
             self._recipients[uuid] = {
+                'interval': interval,
                 'transport': transport,
                 'remove_callback': remove_on_close_handler,
                 'missed_frames': 0
@@ -74,6 +75,7 @@ class PollingThread(ABC):
         for uuid in list(self._recipients.keys()):  # Create a copy of keys to iterate over
             recipient = self._recipients[uuid]
             transport = recipient['transport']
+            interval = recipient['interval']
             try:
                 transport.send_binary(frame)
                 recipient['missed_frames'] = 0

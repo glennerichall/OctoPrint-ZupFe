@@ -221,7 +221,12 @@ def handle_message(plugin, message, reply, reject, transport):
 
     async def on_request_receive_progress():
         try:
-            added = plugin.progress_manager.add_recipient(transport)
+            is_fast = False
+            if message.is_json:
+                content = message.json()
+                if 'isFast' in content:
+                    is_fast = content['isFast']
+            added = plugin.progress_manager.add_recipient(transport, is_fast)
             if added:
                 reply(RPC_RESPONSE_SUCCESS)
             else:
@@ -231,7 +236,12 @@ def handle_message(plugin, message, reply, reject, transport):
 
     async def on_request_stop_progress():
         try:
-            remove = plugin.progress_manager.remove_recipient(transport)
+            is_fast = False
+            if message.is_json:
+                content = message.json()
+                if 'isFast' in content:
+                    is_fast = content['isFast']
+            remove = plugin.progress_manager.remove_recipient(transport, is_fast)
             if remove:
                 reply(RPC_RESPONSE_SUCCESS)
             else:

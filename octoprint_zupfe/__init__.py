@@ -24,7 +24,7 @@ from .progress_manager import ProgressManager
 from .request import request_get
 from .settings import Settings
 from .snapshots import snapshots_daily_push_loop
-from .startup import initialize_backend_async, start_push_poll_loops
+from .startup import start_push_poll_loops, initialize_plugin
 from .temperature_manager import TemperatureManager
 from .webcam_wrapper import WebcamWrapper
 from .webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
@@ -58,7 +58,6 @@ class ZupfePlugin(
         self._mjpeg_manager = None
         self._progress_manager = None
         self._temperature_manager = None
-        self._stream_webcams = []
 
     @property
     def host(self):
@@ -87,6 +86,10 @@ class ZupfePlugin(
         return None
 
     @property
+    def webcams(self):
+        return self._webcams
+
+    @property
     def snapshot_webcams(self):
         webcams = []
         for webcam in self._webcams:
@@ -96,7 +99,11 @@ class ZupfePlugin(
 
     @property
     def stream_webcams(self):
-        return self._stream_webcams
+        webcams = []
+        for webcam in self._webcams:
+            if webcam.can_stream:
+                webcams.append(webcam)
+        return webcams
 
     @property
     def backend(self):
@@ -185,12 +192,6 @@ class ZupfePlugin(
         for webcam_name, webcam in webcams.items():
             self._webcams.append(WebcamWrapper(webcam, self))
 
-        # Precompute streamable webcams
-        self._stream_webcams = []
-        for webcam in self._webcams:
-            if webcam.can_stream and webcam.validate_url_as_stream():
-                self._stream_webcams.append(webcam)
-
         self._backend = Backend(backend_url, frontend_url)
         self._api = ApiBase(host, port, api_key)
         self._printerWrapper = Printer(self._printer, self._api, self.settings)
@@ -202,7 +203,7 @@ class ZupfePlugin(
         self._progress_manager = ProgressManager(self)
         self._temperature_manager = TemperatureManager(self)
 
-        initialize_backend_async(self)
+        initialize_plugin(self)
 
     def on_after_startup(self):
         self.logger.debug(f"Starting poll loops")

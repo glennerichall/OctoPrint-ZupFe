@@ -1,6 +1,7 @@
 import random
 import urllib.parse
 
+import aiohttp
 import requests
 
 from .request import request_get
@@ -10,6 +11,7 @@ from .message_builder import max_safe_integer_js
 class WebcamWrapper:
     def __init__(self, webcam, plugin):
         self._webcam = webcam
+        self._mjpeg_url_valid = False
         self._plugin = plugin
         self._id = random.randint(1, max_safe_integer_js - 1)
 
@@ -27,7 +29,7 @@ class WebcamWrapper:
 
     @property
     def can_stream(self) -> bool:
-        return True
+        return self._mjpeg_url_valid
 
     @property
     def config(self) -> dict:
@@ -81,33 +83,36 @@ class WebcamWrapper:
 
         return mjpeg_url
 
-    def validate_url_as_mjpeg(self):
-        reasonable_max_frame_size = 20 * 1024
+    async def validate_stream_url_if_mjpeg(self):
+        reasonable_max_frame_size = 1024 * 1024
         mjpeg_url = self.stream_url
-        self._plugin.logger.debug("Validating mjpeg stream for camera %s at %s" % (self.id, mjpeg_url))
+        self._plugin.logger.debug(f"Validating mjpeg stream for camera {self.id} at {mjpeg_url}")
         try:
-            resp = requests.get(mjpeg_url, stream=True)
-            stream = b''
-            for chunk in resp.iter_content(chunk_size=1024):
-                stream += chunk
+            async with aiohttp.ClientSession() as session:
+                async with session.get(mjpeg_url, timeout=10) as resp:
+                    stream = b''
+                    async for chunk in resp.content.iter_chunked(1024):
+                        stream += chunk
 
-                # Check if the buffer contains the start and end of a frame
-                start = stream.find(b'\xff\xd8')
-                end = stream.find(b'\xff\xd9', start)
+                        # Check if the buffer contains the start and end of a frame
+                        start = stream.find(b'\xff\xd8')
+                        end = stream.find(b'\xff\xd9', start)
 
-                if start != -1 and end != -1:
-                    return True
-                elif len(stream) > reasonable_max_frame_size:
-                    return False
+                        if start != -1 and end != -1:
+                            self._mjpeg_url_valid = True
+                            break
+                        elif len(stream) > reasonable_max_frame_size:
+                            self._mjpeg_url_valid = False
+                            break
 
         except Exception as e:
-            self._plugin.logger.debug("Unable to read stream from %s: %s" % (mjpeg_url, e))
-            return False
+            self._plugin.logger.debug(f"Unable to read stream from {mjpeg_url}: {e}")
+            self._mjpeg_url_valid = False
 
-        return False
+        return self._mjpeg_url_valid
 
-    def validate_url_as_stream(self):
-        return self.validate_url_as_mjpeg()
+    async def validate_url_as_stream(self):
+        return await self.validate_url_as_mjpeg()
 
     def read_mjpeg_frames(self, on_frames, is_done):
         mjpeg_url = self.stream_url
