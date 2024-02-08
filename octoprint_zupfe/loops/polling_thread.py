@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import threading
 import time
@@ -20,6 +21,7 @@ class PollingThread(ABC):
         self._recipients = {}
         self._thread = None
         self._done = False
+        self._loop = None
         self._epoch = 0
         self._stop_if_no_recipients = stop_if_no_recipients
 
@@ -92,23 +94,24 @@ class PollingThread(ABC):
     def poll(self):
         pass
 
+    def on_polling_started(self):
+        self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._loop)
+
+
+    def on_polling_done(self):
+        self._loop.close()
 
 class PollingThreadWithInterval(PollingThread):
     def __init__(self, stop_if_no_recipients=True, interval=1):
         super().__init__(stop_if_no_recipients)
         self._interval = interval
 
-    def on_polling_started(self):
-        pass
-
     @abstractmethod
     def poll_message(self):
         pass
 
     def on_polling_error(self, error):
-        pass
-
-    def on_polling_done(self):
         pass
 
     def poll(self):

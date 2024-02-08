@@ -48,7 +48,10 @@ class Progress:
 
         self._temperatures['x'].append(now)
 
-        if len(self._temperatures['x']) > 1800:
+        # Calculate the cutoff time for data 30 minutes ago in milliseconds
+        thirty_minutes_ago = now - (30 * 60 * 1000)
+
+        while self._temperatures['x'] and self._temperatures['x'][0] < thirty_minutes_ago:
             self._temperatures['x'].pop(0)
             pop('bed')
             pop('tool0')

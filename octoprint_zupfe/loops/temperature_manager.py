@@ -6,7 +6,7 @@ class TemperatureThread(PollingThreadWithInterval):
         super().__init__(stop_if_no_recipients=False, interval=1)
         self._plugin = plugin
         self._printer = self._plugin.printer
-        self._p2p = self._plugin.p2p
+        self._message_factory = self._plugin.message_factory
         self._progress = self._plugin.progress
 
     def poll_message(self):
@@ -15,11 +15,12 @@ class TemperatureThread(PollingThreadWithInterval):
         # FIXME not supposed to be here
         self._progress.updateTemperatures(temperatures)
 
-        message = self._p2p.post_temperatures(temperatures)
+        message = self._message_factory.post_temperatures(temperatures)
         return message
 
     def on_polling_error(self, e):
-        self._plugin.logger.debug('Error while taking or sending temperature ' + str(e))
+        # pass
+        self._plugin.logger.debug('Error while taking or sending temperature: ' + str(e))
 
 
 class TemperatureManager:
@@ -29,6 +30,8 @@ class TemperatureManager:
         self._thread.start()
 
     def add_recipient(self, transport, interval=1):
+        if interval is None:
+            interval = 1
         self._thread.add_transport(transport, interval)
 
     def remove_recipient(self, transport):

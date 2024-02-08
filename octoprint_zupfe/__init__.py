@@ -158,7 +158,7 @@ class ZupfePlugin(
         return Settings(self._settings)
 
     @property
-    def p2p(self):
+    def message_factory(self):
         if self._backend is None:
             return None
         return MessageFactory(self)
@@ -188,7 +188,10 @@ class ZupfePlugin(
         api_key = self._settings.global_get(["api", "key"])
 
         # Wrap all webcams into WebcamWrapper
+        self.logger.debug(f"Looking for webcams")
         webcams = octoprint.webcams.get_webcams()
+        self.logger.debug(f"Webcams found: {webcams}")
+
         for webcam_name, webcam in webcams.items():
             self._webcams.append(WebcamWrapper(webcam, self))
 

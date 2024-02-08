@@ -9,6 +9,7 @@ class MjpegCameraThread(PollingThread):
         self._webcam = webcam
 
     def poll(self):
+        self.on_polling_started()
         stream_id = self._webcam.id
         builder = MessageBuilder()
 
@@ -21,6 +22,8 @@ class MjpegCameraThread(PollingThread):
 
         self._webcam.read_mjpeg_frames(receive_frame, is_done)
 
+        self.on_polling_done()
+
 
 class MjpegStreamManager:
     def __init__(self, plugin):
@@ -28,6 +31,8 @@ class MjpegStreamManager:
         self._threads = {}
 
     def start_camera(self, camera_id, transport, interval=1):
+        if interval is None:
+            interval = 1
         webcam_to_stream = None
         for webcam in self._plugin.stream_webcams:
             if webcam.id == camera_id:
