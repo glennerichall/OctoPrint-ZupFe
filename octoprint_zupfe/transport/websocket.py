@@ -22,6 +22,10 @@ class WebSocketTransport:
     def uuid(self):
         return self._ws_id
 
+    @property
+    def type(self):
+        return "websocket"
+
     def send(self, message):
         self._ws.send(message)
 
@@ -69,6 +73,10 @@ class WebSocketClient:
     @property
     def uuid(self):
         return self._uuid
+
+    @property
+    def type(self):
+        return "websocket"
 
     @property
     def is_connected(self):

@@ -25,8 +25,9 @@ def handle_message(plugin, message, reply, reject, transport):
                 # if the offer is accepted, webrtc data channel will call back the lambda
                 # which in return will call back the current "handle_message" handler, letting
                 # webbsocket and webrtc use the same route for message handling.
-                p2p = await accept_webrtc_offer(lambda _message, _reply, _reject, _transport:
-                                                handle_message(plugin, _message, _reply, _reject, _transport), offer)
+                p2p = await accept_webrtc_offer(plugin,
+                                                lambda _message, _reply, _reject, _transport: handle_message(plugin, _message, _reply, _reject, _transport),
+                                                offer)
                 answer = get_webrtc_reply(p2p)
                 logger.debug("Replying webrtc answer")
                 reply(answer)
@@ -195,49 +196,27 @@ def handle_message(plugin, message, reply, reject, transport):
         history = plugin.progress.get_temperature_history()
         reply(history)
 
-    async def on_request_start_camera():
-        try:
-            content = message.json()
-            camera_id = content['cameraId']
-            interval = content.get('interval', 1)
-            added = plugin.mjpeg_manager.start_camera(camera_id, transport, interval)
-            if added:
-                reply(RPC_RESPONSE_SUCCESS)
-            else:
-                reply(RPC_RESPONSE_NOOP)
-        except Exception as e:
-            reject(str(e))
-
-    async def on_request_stop_camera():
-        try:
-            content = message.json()
-            camera_id = content['cameraId']
-            removed = plugin.mjpeg_manager.stop_camera(camera_id, transport)
-            if removed:
-                reply(RPC_RESPONSE_SUCCESS)
-            else:
-                reply(RPC_RESPONSE_NOOP)
-        except Exception as e:
-            reject(str(e))
-
-    async def on_request_receive_progress():
+    def subscribe_polling(manager, *kwargs):
         try:
             interval = None
             if message.is_json:
                 content = message.json()
-                interval = content.get('interval', 1)
+                interval = content.get('interval')
 
-            added = plugin.progress_manager.add_recipient(transport, interval)
-            if added:
-                reply(RPC_RESPONSE_SUCCESS)
+            subscription = manager.add_recipient(transport, interval, *kwargs)
+            if subscription:
+                response = {'subscription': subscription}
+                reply(response)
             else:
-                reply(RPC_RESPONSE_NOOP)
+                reject(f'Unable to subscribe to {manager.name}')
         except Exception as e:
             reject(str(e))
 
-    async def on_request_stop_progress():
+    def unsubscribe_polling(manager):
         try:
-            remove = plugin.progress_manager.remove_recipient(transport)
+            content = message.json()
+            subscription = content['subscription']
+            remove = manager.remove_recipient(subscription)
             if remove:
                 reply(RPC_RESPONSE_SUCCESS)
             else:
@@ -245,30 +224,28 @@ def handle_message(plugin, message, reply, reject, transport):
         except Exception as e:
             reject(str(e))
 
-    async def on_request_read_temperatures():
+    async def on_request_start_camera():
         try:
-            interval = None
-            if message.is_json:
-                content = message.json()
-                interval = content.get('interval', 1)
-
-            added = plugin.temperature_manager.add_recipient(transport, interval)
-            if added:
-                reply(RPC_RESPONSE_SUCCESS)
-            else:
-                reply(RPC_RESPONSE_NOOP)
+            content = message.json()
+            camera_id = content['cameraId']
+            subscribe_polling(plugin.mjpeg_manager, camera_id)
         except Exception as e:
             reject(str(e))
+
+    async def on_request_stop_camera():
+        unsubscribe_polling(plugin.mjpeg_manager)
+
+    async def on_request_receive_progress():
+        subscribe_polling(plugin.progress_manager)
+
+    async def on_request_stop_progress():
+        unsubscribe_polling(plugin.progress_manager)
+
+    async def on_request_read_temperatures():
+        subscribe_polling(plugin.temperature_manager)
 
     async def on_request_stop_temperatures():
-        try:
-            removed = plugin.temperature_manager.remove_recipient(transport)
-            if removed:
-                reply(RPC_RESPONSE_SUCCESS)
-            else:
-                reply(RPC_RESPONSE_NOOP)
-        except Exception as e:
-            reject(str(e))
+        unsubscribe_polling(plugin.progress_manager)
 
     event_handlers = {
         EVENT_PRINTER_LINKED: on_linked,
@@ -309,7 +286,7 @@ def handle_message(plugin, message, reply, reject, transport):
         name = get_command_name(message.command)
         handler = rpc_handlers.get(message.command)
 
-    plugin.logger.debug("received message: %s", name)
+    plugin.logger.debug("Received message from %s (%s) : %s", transport.uuid, transport.type, name)
     if handler is not None:
         plugin.worker.submit_coroutines(handler())
     else:

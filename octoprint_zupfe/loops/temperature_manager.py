@@ -1,9 +1,10 @@
+from octoprint_zupfe.loops.polling_manager import PollingManager
 from octoprint_zupfe.loops.polling_thread import PollingThreadWithInterval
 
 
 class TemperatureThread(PollingThreadWithInterval):
     def __init__(self, plugin):
-        super().__init__(stop_if_no_recipients=False, interval=1)
+        super().__init__("Temperature", stop_if_no_recipients=False, interval=1)
         self._plugin = plugin
         self._printer = self._plugin.printer
         self._message_factory = self._plugin.message_factory
@@ -23,16 +24,11 @@ class TemperatureThread(PollingThreadWithInterval):
         self._plugin.logger.debug('Error while taking or sending temperature: ' + str(e))
 
 
-class TemperatureManager:
+class TemperatureManager(PollingManager):
     def __init__(self, plugin):
-        self._plugin = plugin
-        self._thread = TemperatureThread(self._plugin)
-        self._thread.start()
+        super().__init__(plugin, "Temperature", 1)
 
-    def add_recipient(self, transport, interval=1):
-        if interval is None:
-            interval = 1
-        self._thread.add_transport(transport, interval)
+    def create_thread(self, plugin):
+        return TemperatureThread(plugin)
 
-    def remove_recipient(self, transport):
-        self._thread.remove_transport(transport)
+

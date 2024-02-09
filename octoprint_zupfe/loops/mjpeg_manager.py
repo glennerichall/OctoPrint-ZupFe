@@ -1,10 +1,11 @@
+from octoprint_zupfe.loops.polling_manager import PollingManager
 from octoprint_zupfe.messaging.message_builder import MessageBuilder
 from octoprint_zupfe.loops.polling_thread import PollingThread
 
 
 class MjpegCameraThread(PollingThread):
     def __init__(self, webcam, plugin):
-        super().__init__(stop_if_no_recipients=True)
+        super().__init__("mjpeg", stop_if_no_recipients=True)
         self._plugin = plugin
         self._webcam = webcam
 
@@ -25,39 +26,60 @@ class MjpegCameraThread(PollingThread):
         self.on_polling_done()
 
 
+class MjpegManager(PollingManager):
+    def __init__(self, plugin, webcam):
+        super().__init__(plugin, "MJPEG", 1)
+        self._webcam = webcam
+
+    def create_thread(self, plugin):
+        return MjpegCameraThread(self._webcam, self._plugin)
+
+
 class MjpegStreamManager:
     def __init__(self, plugin):
         self._plugin = plugin
-        self._threads = {}
+        self._managers = {}
+        self._subscriptions = {}
 
-    def start_camera(self, camera_id, transport, interval=1):
-        if interval is None:
-            interval = 1
+    def add_recipient(self, transport, interval, camera_id = None):
         webcam_to_stream = None
         for webcam in self._plugin.stream_webcams:
             if webcam.id == camera_id:
                 webcam_to_stream = webcam
 
-        self._plugin.logger.debug(f"Registering transport {transport.uuid} to camera {webcam.id}")
-
+        subscription = None
         if webcam_to_stream is not None:
-            if not camera_id in self._threads or not self._threads[camera_id].running:
-                self._threads[camera_id] = MjpegCameraThread(webcam_to_stream, self._plugin)
-                self._threads[camera_id].start()
+            if not camera_id in self._managers:
+                self._managers[camera_id] = MjpegManager(self._plugin, webcam_to_stream)
 
-            return self._threads[camera_id].add_transport(transport, interval)
+            manager = self._managers[camera_id]
 
-        return False
+            if not manager.running:
+                self._managers[camera_id].start()
 
-    def stop_camera(self, camera_id, transport):
-        if not camera_id in self._threads:
+            subscription = manager.add_recipient(transport, interval)
+            self._subscriptions[subscription] = camera_id
+
+        return subscription
+
+
+    def remove_recipient(self, subscription):
+        if subscription not in self._subscriptions:
+            return False
+
+        camera_id = self._subscriptions[subscription]
+        self._subscriptions.pop(subscription)
+
+        if not camera_id in self._managers:
             return False
         else:
-            self._plugin.logger.debug(f"Unregistering transport {transport.uuid} from camera {camera_id}")
+            manager = self._managers[camera_id]
+            self._plugin.logger.debug(f"Unregistering subscription {subscription} from camera {camera_id}")
 
-            self._threads[camera_id].remove_transport(transport)
-            if not self._threads[camera_id].has_recipients:
+            manager.remove_recipient(subscription)
+
+            if manager.is_done:
                 self._plugin.logger.debug(f"Camera {camera_id} has no more recipients, stopping thread")
-                self._threads[camera_id].stop()
-                self._threads.pop(camera_id)
+                self._managers.pop(camera_id)
+
             return True

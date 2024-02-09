@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 from asyncio import Future
@@ -41,39 +42,63 @@ def get_webrtc_reply(peer_connection):
 
 
 class WebrtcClient:
-    def __init__(self, channel):
+    def __init__(self, channel, uuid, worker):
         self.channel = channel
         self._close_callbacks = []
-        self._uuid = str(uuid.uuid4())
+        self._uuid = uuid
+        self._worker = worker
 
-        @self.channel.on("close")
-        def on_close():
-            for callback in self._close_callbacks:
-                callback(self)
+
+    @property
+    def type(self):
+        return "webrtc"
 
     def send_binary(self, data):
+        self._worker.submit_coroutines(self.send_async(data))
+
+    async def send_async(self, data):
         self.channel.send(data)
 
     def on_close(self, callback):
         self._close_callbacks.append(callback)
         return lambda: self._close_callbacks.remove(callback)
 
+    def close(self):
+        logger.debug(f"WebRTC data channel closed for {self.uuid}")
+        for callback in self._close_callbacks:
+            callback(self)
+
     @property
     def uuid(self):
         return self._uuid
 
 
-async def accept_webrtc_offer(on_message, offer):
+async def accept_webrtc_offer(plugin, on_message, offer):
     peer_connection = RTCPeerConnection()
     remote_description = RTCSessionDescription(sdp=offer['sdp'], type=offer['type'])
     await peer_connection.setRemoteDescription(remote_description)
 
+    webrtc_uuid = str(uuid.uuid4())
+
     @peer_connection.on("datachannel")
     def on_datachannel(channel):
+        transport = WebrtcClient(channel, webrtc_uuid, plugin.worker)
+
+        @channel.on("close")
+        def on_close():
+            logger.debug('WebRTC Channel closed')
+
+        @peer_connection.on("iceconnectionstatechange")
+        async def on_iceconnectionstatechange():
+            logger.debug(f'WebRTC Ice connection state changed, {peer_connection.iceConnectionState}')
+            if (peer_connection.iceConnectionState == 'disconnected' or
+                peer_connection.iceConnectionState == 'failed') :
+                transport.close()
+
         @channel.on("message")
         def on_channel_message(message):
             message = MessageBuilder().unpack(message)
-            transport = WebrtcClient(channel)
+
             if message.command == RPC_REQUEST_STREAM:
                 reply = create_stream(transport, message)
             else:

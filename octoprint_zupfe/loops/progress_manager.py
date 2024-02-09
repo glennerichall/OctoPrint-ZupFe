@@ -1,9 +1,10 @@
+from octoprint_zupfe.loops.polling_manager import PollingManager
 from octoprint_zupfe.loops.polling_thread import PollingThreadWithInterval
 
 
 class ProgressThread(PollingThreadWithInterval):
     def __init__(self, plugin):
-        super().__init__(stop_if_no_recipients=True, interval=0.1)
+        super().__init__("progress", stop_if_no_recipients=True, interval=0.1)
         self._plugin = plugin
         self._p2p = self._plugin.message_factory
         self._progress = self._plugin.progress
@@ -16,26 +17,11 @@ class ProgressThread(PollingThreadWithInterval):
         self._plugin.logger.debug('Error while taking or sending printing progress ' + str(e))
 
 
-class ProgressManager:
+class ProgressManager(PollingManager):
     def __init__(self, plugin):
-        self._plugin = plugin
-        self._thread = None
+       super().__init__(plugin, "Progress", 10)
 
-    def add_recipient(self, transport, interval=10):
-        if interval is None:
-            interval = 10
-        if self._thread is None:
-            self._plugin.logger.debug('Starting Progress thread')
-            self._thread = ProgressThread(self._plugin)
-            self._thread.start()
-        return self._thread.add_transport(transport, interval)
+    def create_thread(self, plugin):
+        return ProgressThread(plugin)
 
-    def remove_recipient(self, transport, is_fast=False):
-        result = False
-        if self._thread is not None:
-            result = self._thread.remove_transport(transport)
-            if not self._thread.has_recipients:
-                self._plugin.logger.debug('No more recipients in Progress thread, stopping it')
-                self._thread.stop()
-                self._thread = None
-        return result
+
