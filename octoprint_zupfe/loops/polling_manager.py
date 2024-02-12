@@ -33,7 +33,7 @@ class PollingManager:
         if not self.running:
             self.start()
 
-        self._plugin.logger.debug(f"Registering transport {transport.uuid}({transport.type}) to  {self._name} loop at interval {interval}")
+        self._plugin.logger.debug(f"Registering transport {transport.uuid} ({transport.type}) to  {self._name} loop at interval {interval}")
 
         return self._thread.add_transport(transport, interval)
 

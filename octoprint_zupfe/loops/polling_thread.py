@@ -48,9 +48,9 @@ class PollingThread(ABC):
 
         self._subscriptions[subscription] = uuid
         if uuid is not None and uuid not in self._recipients:
-            remove_on_close_handler = transport.on_close(lambda _transport: self.remove_subscription(_transport))
+            remove_on_close_handler = transport.on_close(lambda _transport: self.remove_transport(_transport))
             self._recipients[uuid] = {
-                'subscriptions': {},
+                'subscriptions': set(),
                 'interval': interval,
                 'transport': transport,
                 'remove_callback': remove_on_close_handler,
@@ -77,6 +77,23 @@ class PollingThread(ABC):
     def running(self):
         return not self._done
 
+
+    def stop_if_empty(self):
+        if not self.has_recipients and self._stop_if_no_recipients:
+            logger.debug(
+                f'Loop {self._name} has no recipients stopping it')
+            self.stop()
+
+    def remove_transport(self, transport):
+        uuid = transport.uuid
+        if uuid in self._recipients:
+            recipient = self._recipients[uuid]
+            recipient['remove_callback']()
+            self._recipients.pop(uuid)
+            logger.debug(f'Transport {transport.uuid} ({transport.type}) removed from {self._name}')
+
+        self.stop_if_empty()
+
     def remove_subscription(self, subscription):
         uuid = None
         found = False
@@ -98,23 +115,18 @@ class PollingThread(ABC):
                     f'Subscription {subscription} on transport {transport.uuid} ({transport.type}) removed from recipients of {self._name}')
 
                 if len(subscriptions) == 0:
-                    recipient['remove_callback']()
                     logger.debug(
                         f'Transport {transport.uuid} ({transport.type}) has no more subscriptions so removing it from {self._name}')
-
-            if not self.has_recipients and self._stop_if_no_recipients:
-                logger.debug(
-                    f'Loop {self._name} has no recipients stopping it')
-                self.stop()
+                    self.remove_transport(transport)
 
         else:
-             logger.debug(f'Could not remove subscription {subscription} from recipients of {self._name}')
+            logger.debug(f'Could not remove subscription {subscription} from recipients of {self._name}')
 
         return found
 
     def validate_and_evict_transport(self, name, recipient, error=None):
         if should_evict_transport(name, recipient, error):
-            self.remove_subscription(recipient['transport'])
+            self.remove_transport(recipient['transport'])
 
     def start(self):
         self._done = False

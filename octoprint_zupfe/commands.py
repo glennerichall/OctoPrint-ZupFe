@@ -216,6 +216,7 @@ def handle_message(plugin, message, reply, reject, transport):
         try:
             content = message.json()
             subscription = content['subscription']
+            subscription = subscription['subscription']
             remove = manager.remove_recipient(subscription)
             if remove:
                 reply(RPC_RESPONSE_SUCCESS)
