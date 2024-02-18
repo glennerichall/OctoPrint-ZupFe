@@ -292,4 +292,5 @@ def handle_message(plugin, message, reply, reject, transport):
         plugin.worker.submit_coroutines(handler())
     else:
         plugin.logger.debug("Command does not exist: " + str(message.command))
-        reject('Unknown request ' + str(message.command))
+        if message.is_command:
+            reject('Unknown request ' + str(message.command))

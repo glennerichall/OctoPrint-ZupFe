@@ -70,15 +70,14 @@ class Backend:
         for key, value in self._original_urls.items():
             self._urls_with_id[key] = value.replace(':uuid', str(self.octo_id))
 
-    def connect_wss(self, on_message, on_open=None, on_close=None, on_error=None):
+    def init_wss(self, on_message, on_open=None, on_close=None, on_error=None):
         self._ws = WebSocketClient(self._backend_ws_url,
-                                   self.octo_id,
-                                   self.api_key,
                                    on_message,
                                    on_open=on_open,
                                    on_error=on_error,
                                    on_close=on_close)
-        logger.debug('Connecting to ' + self._backend_ws_url)
-        self._ws.connect()
-        return self._ws
 
+    def connect_ws(self):
+        logger.debug('Connecting to ' + self._backend_ws_url)
+        self._ws.connect(self.octo_id, self.api_key, )
+        return self._ws

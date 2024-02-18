@@ -1,3 +1,5 @@
+import asyncio
+
 from .commands import handle_message
 from octoprint_zupfe.loops.snapshots import snapshots_daily_push_loop
 from .worker import AsyncTaskWorker
@@ -38,46 +40,60 @@ async def initialize_backend(plugin):
     await plugin.backend.init()
     plugin.frontend.emitInitialized()
 
-    octo_id = plugin.settings.get('octoprint_id', None)
-    api_key = plugin.settings.get('api_key', None)
+    async def validate_api_key():
+        octo_id = plugin.settings.get('octoprint_id', None)
+        api_key = plugin.settings.get('api_key', None)
 
-    uuid_valid = False
-    while not uuid_valid:
-        if octo_id is None:
-            plugin.logger.debug('No octoid, asking for a new one')
-            instance = await plugin.actions.new_octo_id()
-            plugin.logger.debug('Got a new octoid')
-            octo_id = instance['uuid']
-            api_key = instance['apiKey']
-            plugin.settings.save_if_updated('octoprint_id', octo_id)
-            plugin.settings.save_if_updated('api_key', api_key)
-            plugin.settings.save_if_updated('linked', False)
-        else:
-            plugin.backend.set_octo_id(octo_id, api_key)
+        uuid_valid = False
+        while not uuid_valid:
+            if octo_id is None:
+                plugin.logger.debug('No octoid, asking for a new one')
+                instance = await plugin.actions.new_octo_id()
+                plugin.logger.debug('Got a new octoid')
+                octo_id = instance['uuid']
+                api_key = instance['apiKey']
+                plugin.settings.save_if_updated('octoprint_id', octo_id)
+                plugin.settings.save_if_updated('api_key', api_key)
+                plugin.settings.save_if_updated('linked', False)
+            else:
+                plugin.backend.set_octo_id(octo_id, api_key)
 
-        plugin.logger.debug('Checking validity of octoid and api key')
-        uuid_valid = await plugin.actions.check_uuid()
+            plugin.logger.debug('Checking validity of octoid and api key')
+            uuid_valid = await plugin.actions.check_uuid()
 
-        if not uuid_valid:
-            plugin.logger.debug('Octoid not found on backend or api key is invalid, flushing octoid')
-            octo_id = None
-            api_key = None
-        else:
-            plugin.logger.debug('Octoid is valid')
+            if not uuid_valid:
+                plugin.logger.debug('Octoid not found on backend or api key is invalid, flushing octoid')
+                octo_id = None
+                api_key = None
+            else:
+                plugin.logger.debug('Octoid is valid')
 
-    # must transmit api key because:
-    # jinja may not have access to value when rendering wizard
-    # self.settings.settings.plugins.zupfe.api_key in zupfe.js does not seem to get settings everytime
-    plugin.frontend.emitApiKey(api_key)
+        # must transmit api key because:
+        # jinja may not have access to value when rendering wizard
+        # self.settings.settings.plugins.zupfe.api_key in zupfe.js does not seem to get settings everytime
+        plugin.frontend.emitApiKey(api_key)
 
-    try:
+    async def on_close():
+        plugin.frontend.emitBackendDisconnected()
+        await validate_api_key()
+        await asyncio.sleep(1)
+        connect_ws()
 
-        plugin.logger.debug('Connecting to websocket')
-        plugin.backend.connect_wss(
-            on_message=lambda message, reply, reject, transport:
+    def connect_ws():
+        try:
+            plugin.logger.debug('Connecting to websocket')
+            plugin.backend.connect_ws()
+        except Exception as e:
+            plugin.logger.error(str(e))
+
+
+    plugin.backend.init_wss(
+        on_message=lambda message, reply, reject, transport:
             handle_message(plugin, message, reply, reject, transport),
-            on_close=plugin.frontend.emitBackendDisconnected,
-            on_error=plugin.frontend.emitBackendDisconnected,
-            on_open=lambda: plugin.worker.submit_coroutines(on_connected(plugin)))
-    except Exception as e:
-        plugin.logger.error(str(e))
+        on_close=lambda: plugin.worker.submit_coroutines(on_close()),
+        on_open=lambda: plugin.worker.submit_coroutines(on_connected(plugin)))
+
+    await validate_api_key()
+    connect_ws()
+
+

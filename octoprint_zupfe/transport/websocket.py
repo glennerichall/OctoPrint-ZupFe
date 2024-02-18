@@ -37,20 +37,21 @@ class WebSocketTransport:
 
 
 class WebSocketClient:
-    def __init__(self, backend_ws_url, octo_id, api_key, on_message,
+    def __init__(self, backend_ws_url, on_message,
                  on_open=None, on_close=None, on_error=None):
-        headers = {
-            'x-printer-uuid': octo_id,
-            'x-api-key': api_key
-        }
+
+        self._api_key = None
+        self._octo_id = None
+
         # Create a custom SSL context that allows self-signed certificates
         ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
         # websocket.enableTrace(True)
 
+        self._backend_ws_url = backend_ws_url
         self._close_callbacks = []
-        self._thread = threading.Thread(target=self._run_forever)
+        self._thread = None
 
         self._connected = False
         self._connection_future = None
@@ -63,12 +64,7 @@ class WebSocketClient:
 
         self._uuid = str(uuid.uuid4())
 
-        self._ws = websocket.WebSocketApp(backend_ws_url,
-                                          header=headers,
-                                          on_open=self._on_open,
-                                          on_message=self._on_message,
-                                          on_error=self._on_error,
-                                          on_close=self._on_close)
+
 
     @property
     def uuid(self):
@@ -137,24 +133,39 @@ class WebSocketClient:
         if self._on_open_callback is not None:
             self._on_open_callback()
 
-    def _run_forever(self, retry_interval=1):
-        while not self._closed:
-            try:
-                self._ws.run_forever(skip_utf8_validation=True, sslopt={"cert_reqs": ssl.CERT_NONE})
-                if self._connected:
-                    self._ws.close()
-                    self._on_close(None, None, None)
+    def _run_ws(self):
+        try:
+            headers = {
+                'x-printer-uuid': self._octo_id,
+                'x-api-key': self._api_key
+            }
 
-                self._connected = False
-                time.sleep(retry_interval)
-            except websocket.WebSocketException as e:
-                pass
+            self._ws = websocket.WebSocketApp(self._backend_ws_url,
+                                              header=headers,
+                                              on_open=self._on_open,
+                                              on_message=self._on_message,
+                                              on_error=self._on_error,
+                                              on_close=self._on_close)
+
+            self._ws.run_forever(skip_utf8_validation=True, sslopt={"cert_reqs": ssl.CERT_NONE})
+
+            if self._connected:
+                self._ws.close()
+                self._on_close(None, None, None)
+
+            self._connected = False
+
+        except websocket.WebSocketException as e:
+            pass
 
     def close(self):
         self._closed = True
 
-    def connect(self):
+    def connect(self, octo_id, api_key):
+        self._api_key = api_key
+        self._octo_id = octo_id
         self._closed = False
+        self._thread = threading.Thread(target=self._run_ws)
         self._thread.start()
 
     def on_close(self, callback):

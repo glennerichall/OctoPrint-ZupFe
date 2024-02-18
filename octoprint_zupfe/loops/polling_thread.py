@@ -133,7 +133,8 @@ class PollingThread(ABC):
         thread = threading.Thread(target=self.poll)
         self._thread = thread
 
-        # daemon mode is mandatory so threads get killed when server shuts down
+        # daemon mode is mandatory so threads get killed when server shuts down            const client = this.createClient(ws, req);
+
         thread.daemon = True
         thread.start()
 
