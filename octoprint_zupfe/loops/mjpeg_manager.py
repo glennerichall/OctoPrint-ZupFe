@@ -39,7 +39,6 @@ class MjpegStreamManager:
     def __init__(self, plugin):
         self._plugin = plugin
         self._managers = {}
-        self._subscriptions = {}
 
     def add_recipient(self, transport, interval, camera_id = None):
         webcam_to_stream = None
@@ -47,7 +46,6 @@ class MjpegStreamManager:
             if webcam.id == camera_id:
                 webcam_to_stream = webcam
 
-        subscription = None
         if webcam_to_stream is not None:
             if not camera_id in self._managers:
                 self._managers[camera_id] = MjpegManager(self._plugin, webcam_to_stream)
@@ -57,26 +55,19 @@ class MjpegStreamManager:
             if not manager.running:
                 self._managers[camera_id].start()
 
-            subscription = manager.add_recipient(transport, interval)
-            self._subscriptions[subscription] = camera_id
+            manager.add_recipient(transport, interval)
 
-        return subscription
+        return True
 
 
-    def remove_recipient(self, subscription):
-        if subscription not in self._subscriptions:
-            return False
-
-        camera_id = self._subscriptions[subscription]
-        self._subscriptions.pop(subscription)
-
+    def remove_recipient(self, transport, camera_id):
         if not camera_id in self._managers:
             return False
         else:
             manager = self._managers[camera_id]
-            self._plugin.logger.debug(f"Unregistering subscription {subscription} from camera {camera_id}")
+            self._plugin.logger.debug(f"Unregistering transport {transport.uuid} ({transport.type}) from camera {camera_id}")
 
-            manager.remove_recipient(subscription)
+            manager.remove_recipient(transport)
 
             if manager.is_done:
                 self._plugin.logger.debug(f"Camera {camera_id} has no more recipients, stopping thread")

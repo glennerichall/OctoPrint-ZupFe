@@ -37,11 +37,11 @@ class PollingManager:
 
         return self._thread.add_transport(transport, interval)
 
-    def remove_recipient(self, subscription):
+    def remove_recipient(self, transport, *kwargs):
         result = False
         if self._thread is not None:
-            self._plugin.logger.debug(f"Unregistering subscription {subscription} from  {self._name} loop")
-            result = self._thread.remove_subscription(subscription)
+            self._plugin.logger.debug(f"Unregistering transport {transport.uuid} ({transport.type}) from  {self._name} loop")
+            result = self._thread.remove_transport(transport)
             if self._thread.is_done:
                 self._plugin.logger.debug(f'Loop {self._name} is done, flushing it')
                 self._thread = None

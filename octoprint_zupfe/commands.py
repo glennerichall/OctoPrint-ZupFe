@@ -203,21 +203,17 @@ def handle_message(plugin, message, reply, reject, transport):
                 content = message.json()
                 interval = content.get('interval')
 
-            subscription = manager.add_recipient(transport, interval, *kwargs)
-            if subscription:
-                response = {'subscription': subscription}
-                reply(response)
+            success = manager.add_recipient(transport, interval, *kwargs)
+            if success:
+                reply(RPC_RESPONSE_SUCCESS)
             else:
                 reject(f'Unable to subscribe to {manager.name}')
         except Exception as e:
             reject(str(e))
 
-    def unsubscribe_polling(manager):
+    def unsubscribe_polling(manager, *kwargs):
         try:
-            content = message.json()
-            subscription = content['subscription']
-            subscription = subscription['subscription']
-            remove = manager.remove_recipient(subscription)
+            remove = manager.remove_recipient(transport, *kwargs)
             if remove:
                 reply(RPC_RESPONSE_SUCCESS)
             else:
@@ -234,7 +230,12 @@ def handle_message(plugin, message, reply, reject, transport):
             reject(str(e))
 
     async def on_request_stop_camera():
-        unsubscribe_polling(plugin.mjpeg_manager)
+        try:
+            content = message.json()
+            camera_id = content['cameraId']
+            unsubscribe_polling(plugin.mjpeg_manager, camera_id)
+        except Exception as e:
+            reject(str(e))
 
     async def on_request_receive_progress():
         subscribe_polling(plugin.progress_manager)
@@ -246,7 +247,7 @@ def handle_message(plugin, message, reply, reject, transport):
         subscribe_polling(plugin.temperature_manager)
 
     async def on_request_stop_temperatures():
-        unsubscribe_polling(plugin.progress_manager)
+        unsubscribe_polling(plugin.temperature_manager)
 
     event_handlers = {
         EVENT_PRINTER_LINKED: on_linked,
