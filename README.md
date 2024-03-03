@@ -8,7 +8,7 @@ See [ZupFe](https://zupfe.velor.ca)
 
 ## Setup
 
-Install via the bundled [Plugin Manager](https://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
+Install via the bundled [Plugin Manager](https://plugins.octoprint.org/plugins/zupfe/)
 or manually by downloading this archive:
 
 [Zupfe For Octoprint on GitHub](https://github.com/glennerichall/OctoPrint-Zupfe/archive/master.zip)
