@@ -48,7 +48,7 @@ async def initialize_backend(plugin):
         while not uuid_valid:
             if octo_id is None:
                 plugin.logger.debug('No octoid, asking for a new one')
-                instance = await plugin.actions.new_octo_id()
+                instance = await plugin.actions.new_octo_id(plugin.version)
                 plugin.logger.debug('Got a new octoid')
                 octo_id = instance['uuid']
                 api_key = instance['apiKey']

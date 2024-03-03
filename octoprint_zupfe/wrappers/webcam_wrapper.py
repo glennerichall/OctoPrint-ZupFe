@@ -84,6 +84,12 @@ class WebcamWrapper:
         if self.can_snapshot:
             config = self._webcam.config
 
+            config = {
+                'flip_h': config.flipH,
+                'flip_v': config.flipV,
+                'rotate_90': config.rotate90
+            }
+
             if self._webcam.config.compat is not None:
                 snapshot_url = self.snapshot_url
                 response = await request_get(snapshot_url, max_retries=1)

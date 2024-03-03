@@ -60,6 +60,11 @@ class ZupfePlugin(
         self._temperature_manager = None
 
     @property
+    def version(self):
+        # TODO get the version from setup.py
+        return "o.0.1.0"
+
+    @property
     def host(self):
         return self._host
 
@@ -249,5 +254,5 @@ def __plugin_load__():
     global __plugin_hooks__
     __plugin_hooks__ = {
         "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.on_gcode_sent,
-        "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
+        "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
     }

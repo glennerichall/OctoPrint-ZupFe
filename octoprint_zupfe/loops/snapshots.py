@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-logger = logging.getLogger("PRINTERS.plugins.zupfe.snapshots")
+logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 async def wait_until_next_day():

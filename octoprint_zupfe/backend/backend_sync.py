@@ -20,6 +20,7 @@ async def update_status_if_changed(plugin):
     linked = link_status['linked'] == 'linked'
     linked_in_settings = plugin.settings.get_bool('linked')
     plugin.settings.save_if_updated('linked', linked)
+
     if linked_in_settings and not linked:
         plugin.frontend.emitOctoprintUnlinked()
     elif not linked_in_settings and linked:
@@ -30,6 +31,9 @@ async def update_status_if_changed(plugin):
         plugin.logger.debug(f'Printer name changed from {link_status["name"]} to {title}')
         await plugin.actions.set_printer_title(title)
 
+    if link_status['version'] != plugin.version:
+        plugin.logger.debug(f'Printer plugin version changed from {link_status["version"]} to {plugin.version}')
+        await plugin.actions.set_plugin_version(plugin.version)
 
 async def notify_power_state_changed(plugin):
     printer = plugin.printer

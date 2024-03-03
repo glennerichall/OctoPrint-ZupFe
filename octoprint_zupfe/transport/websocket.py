@@ -43,10 +43,13 @@ class WebSocketClient:
         self._api_key = None
         self._octo_id = None
 
-        # Create a custom SSL context that allows self-signed certificates
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
+        # Create a custom SSL context that allows self-signed certificates for development purpose
+        if "localhost" in backend_ws_url:
+            logger.debug(f"Enabling websocket self-signed certificates")
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+
         # websocket.enableTrace(True)
 
         self._backend_ws_url = backend_ws_url
