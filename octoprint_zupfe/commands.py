@@ -10,33 +10,33 @@ from .constants import EVENT_PRINTER_LINKED, EVENT_PRINTER_UNLINKED, \
     get_command_name, RPC_REQUEST_RECEIVE_PROGRESS, RPC_REQUEST_STOP_PROGRESS, RPC_REQUEST_STOP_TEMPERATURES, \
     RPC_REQUEST_READ_TEMPERATURES
 from octoprint_zupfe.transport.request import request_get
-from octoprint_zupfe.transport.webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
+# from octoprint_zupfe.transport.webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
 
 
 def handle_message(plugin, message, reply, reject, transport):
-    async def on_request_p2p():
-        logger.debug("Receiving webrtc offer")
-        offer = message.json()
-        if AIORTC_AVAILABLE:
-            try:
-                logger.debug("Setting-up ICE connection")
-                # if the offer is accepted, webrtc data channel will call back the lambda
-                # which in return will call back the current "handle_message" handler, letting
-                # webbsocket and webrtc use the same route for message handling.
-                p2p = await accept_webrtc_offer(plugin,
-                                                lambda _message, _reply, _reject, _transport: handle_message(plugin, _message, _reply, _reject, _transport),
-                                                offer)
-                answer = get_webrtc_reply(p2p)
-                logger.debug("Replying webrtc answer")
-                reply(answer)
-            except Exception as e:
-                logger.debug("Unable top reply answer " + str(e))
-                reply(None)
-        else:
-            logger.debug("Aiortc is unavailable, denying offer")
-            reply(None)
+    # async def on_request_p2p():
+    #     logger.debug("Receiving webrtc offer")
+    #     offer = message.json()
+    #     if AIORTC_AVAILABLE:
+    #         try:
+    #             logger.debug("Setting-up ICE connection")
+    #             # if the offer is accepted, webrtc data channel will call back the lambda
+    #             # which in return will call back the current "handle_message" handler, letting
+    #             # webbsocket and webrtc use the same route for message handling.
+    #             p2p = await accept_webrtc_offer(plugin,
+    #                                             lambda _message, _reply, _reject, _transport: handle_message(plugin, _message, _reply, _reject, _transport),
+    #                                             offer)
+    #             answer = get_webrtc_reply(p2p)
+    #             logger.debug("Replying webrtc answer")
+    #             reply(answer)
+    #         except Exception as e:
+    #             logger.debug("Unable top reply answer " + str(e))
+    #             reply(None)
+    #     else:
+    #         logger.debug("Aiortc is unavailable, denying offer")
+    #         reply(None)
 
     async def on_linked():
         plugin.settings.save_if_updated('linked', True)
@@ -257,7 +257,7 @@ def handle_message(plugin, message, reply, reject, transport):
     rpc_handlers = {
         RPC_REQUEST_GET_FILE_LIST: on_request_file_list,
         RPC_REQUEST_STREAM: on_request_file_stream,
-        RPC_REQUEST_WEBRTC: on_request_p2p,
+        # RPC_REQUEST_WEBRTC: on_request_p2p,
         RPC_REQUEST_GET_STATE: on_request_state,
         RPC_REQUEST_PRINT_ACTIVE_FILE: on_request_print_active_file,
         RPC_REQUEST_SET_ACTIVE_FILE: on_request_set_active_file,

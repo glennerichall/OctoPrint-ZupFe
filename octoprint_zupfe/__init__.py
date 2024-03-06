@@ -27,7 +27,7 @@ from octoprint_zupfe.loops.snapshots import snapshots_daily_push_loop
 from .startup import start_push_poll_loops, initialize_plugin
 from octoprint_zupfe.loops.temperature_manager import TemperatureManager
 from octoprint_zupfe.wrappers.webcam_wrapper import WebcamWrapper
-from octoprint_zupfe.transport.webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
+# from octoprint_zupfe.transport.webrtc import AIORTC_AVAILABLE, accept_webrtc_offer, get_webrtc_reply
 from .worker import AsyncTaskWorker
 from octoprint_zupfe.messaging.message_factory import MessageFactory
 from .zupfe_api import ZupfeApiPlugin
@@ -62,7 +62,7 @@ class ZupfePlugin(
     @property
     def version(self):
         # TODO get the version from setup.py
-        return "o.0.1.0"
+        return "o.0.1.1"
 
     @property
     def host(self):

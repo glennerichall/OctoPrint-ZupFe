@@ -14,7 +14,7 @@ plugin_package = "octoprint_zupfe"
 plugin_name = "OctoPrint-Zupfe"
 
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "0.1.0"
+plugin_version = "0.1.1"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
@@ -61,7 +61,7 @@ plugin_ignored_packages = []
 # you would like to support Python 2 as well as 3 (not recommended).
 additional_setup_parameters = {"python_requires": ">=3.7,<4"}
 
-plugin_requires = ["websocket_client>=1.5.1", "aiohttp>=3.8.4", "aiortc>=1.5.0"]
+plugin_requires = ["websocket_client>=1.5.1", "aiohttp>=3.8.4"]
 
 ########################################################################################################################
 
