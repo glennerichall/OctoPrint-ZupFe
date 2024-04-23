@@ -1,3 +1,4 @@
+from octoprint_zupfe.loops.frame_limiter import FrameLimiter
 from octoprint_zupfe.loops.polling_manager import PollingManager
 from octoprint_zupfe.messaging.message_builder import MessageBuilder
 from octoprint_zupfe.loops.polling_thread import PollingThread
@@ -13,10 +14,12 @@ class MjpegCameraThread(PollingThread):
         self.on_polling_started()
         stream_id = self._webcam.id
         builder = MessageBuilder()
+        limiter = FrameLimiter(6)
 
         def receive_frame(frame):
-            message = builder.new_mjpeg_frame(frame, stream_id)
-            self.send_frame(message['buffer'])
+            if limiter.accept():
+                message = builder.new_mjpeg_frame(frame, stream_id)
+                self.send_frame(message['buffer'])
 
         def is_done():
             return self._done

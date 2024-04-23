@@ -62,7 +62,7 @@ class ZupfePlugin(
     @property
     def version(self):
         # TODO get the version from setup.py
-        return "o.0.1.1"
+        return "o.0.1.2"
 
     @property
     def host(self):

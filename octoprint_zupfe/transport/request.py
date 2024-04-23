@@ -3,6 +3,7 @@ import logging
 
 import aiohttp
 
+from octoprint_zupfe.expo_backoff import ExponentialBackoff
 from octoprint_zupfe.messaging.message_builder import MessageBuilder
 
 logger = logging.getLogger("octoprint.plugins.zupfe")
@@ -40,9 +41,13 @@ async def request(method,
                   url,
                   headers=None,
                   data=None,
-                  max_retries=float('inf')):
+                  max_retries=float('inf'),
+                  backoff=None):
     retries = 0
     ok_status = False
+
+    if backoff is None:
+        backoff = ExponentialBackoff()
 
     while retries < max_retries and not ok_status:
         session = aiohttp.ClientSession()
@@ -54,7 +59,7 @@ async def request(method,
         except aiohttp.ClientError as e:
             logger.debug(f'Request {method} to {url} failed with error: {e}')
             retries += 1
-            await asyncio.sleep(1)
+            await backoff.sleepAsync()
 
     logger.error(f'Maximum number of retries ({max_retries}) reached. Request {method}: {url} failed.')
     return None

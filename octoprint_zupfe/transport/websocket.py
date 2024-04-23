@@ -7,6 +7,7 @@ import uuid
 import websocket
 
 from octoprint_zupfe.constants import RPC_REQUEST_STREAM
+from octoprint_zupfe.expo_backoff import ExponentialBackoff
 from octoprint_zupfe.messaging.message_builder import MessageBuilder
 from octoprint_zupfe.transport.request import create_stream, create_reply, create_rejection
 
@@ -43,13 +44,6 @@ class WebSocketClient:
         self._api_key = None
         self._octo_id = None
 
-        # Create a custom SSL context that allows self-signed certificates for development purpose
-        if "localhost" in backend_ws_url:
-            logger.debug(f"Enabling websocket self-signed certificates")
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-
         # websocket.enableTrace(True)
 
         self._backend_ws_url = backend_ws_url
@@ -59,6 +53,7 @@ class WebSocketClient:
         self._connected = False
         self._connection_future = None
         self._closed = True
+        self._running = False
 
         self._on_open_callback = on_open
         self._on_message_callback = on_message
@@ -66,8 +61,6 @@ class WebSocketClient:
         self._on_error_callback = on_error
 
         self._uuid = str(uuid.uuid4())
-
-
 
     @property
     def uuid(self):
@@ -114,21 +107,24 @@ class WebSocketClient:
             reject()
 
         else:
-            if message.command == RPC_REQUEST_STREAM:
-                reply = create_stream(self, message)
-            else:
-                reply = create_reply(self, message)
+            try:
+                if message.command == RPC_REQUEST_STREAM:
+                    reply = create_stream(self, message)
+                else:
+                    reply = create_reply(self, message)
 
-            content = None
-            if message.is_json:
-                content = message.json()
+                content = None
+                if message.is_json:
+                    content = message.json()
 
-            ws_id = None
-            if content is not None and 'wsClientId' in content:
-                ws_id = content['wsClientId']
+                ws_id = None
+                if content is not None and 'wsClientId' in content:
+                    ws_id = content['wsClientId']
 
-            transport = self
-            self._on_message_callback(message, reply=reply, reject=reject, transport=transport)
+                transport = self
+                self._on_message_callback(message, reply=reply, reject=reject, transport=transport)
+            except Exception as e:
+                reject()
 
     def _on_open(self, wssapp):
         logger.info('Websocket opened')
@@ -137,37 +133,52 @@ class WebSocketClient:
             self._on_open_callback()
 
     def _run_ws(self):
-        try:
-            headers = {
-                'x-printer-uuid': self._octo_id,
-                'x-api-key': self._api_key
-            }
+        backoff = ExponentialBackoff()
+        while self._running:
+            try:
+                headers = {
+                    'x-printer-uuid': self._octo_id,
+                    'x-api-key': self._api_key
+                }
 
-            self._ws = websocket.WebSocketApp(self._backend_ws_url,
-                                              header=headers,
-                                              on_open=self._on_open,
-                                              on_message=self._on_message,
-                                              on_error=self._on_error,
-                                              on_close=self._on_close)
+                self._ws = websocket.WebSocketApp(self._backend_ws_url,
+                                                  header=headers,
+                                                  on_open=self._on_open,
+                                                  on_message=self._on_message,
+                                                  on_error=self._on_error,
+                                                  on_close=self._on_close)
 
-            self._ws.run_forever(skip_utf8_validation=True, sslopt={"cert_reqs": ssl.CERT_NONE})
+                # Create a custom SSL context that allows self-signed certificates for development purpose
+                if "localhost" in self._backend_ws_url:
+                    logger.debug(f"Enabling websocket self-signed certificates")
+                    self._ws.run_forever(skip_utf8_validation=True, sslopt={"cert_reqs": ssl.CERT_NONE})
+                else:
+                    self._ws.run_forever(skip_utf8_validation=True)
 
-            if self._connected:
-                self._ws.close()
-                self._on_close(None, None, None)
+                if self._connected:
+                    self._ws.close()
+                    # self._on_close(None, None, None)
 
-            self._connected = False
+                self._connected = False
 
-        except websocket.WebSocketException as e:
-            pass
+            except Exception as e:
+                logger.debug(f"Websocket connection failed with exception {e}")
+                pass
+
+            backoff.sleep()
 
     def close(self):
+        self._running = False
         self._closed = True
 
-    def connect(self, octo_id, api_key):
+    def set_credentials(self, octo_id, api_key):
         self._api_key = api_key
         self._octo_id = octo_id
+
+    def connect(self, octo_id, api_key):
+        self.set_credentials(octo_id, api_key)
         self._closed = False
+        self._running = True
         self._thread = threading.Thread(target=self._run_ws)
         self._thread.start()
 

@@ -98,8 +98,6 @@ $(function () {
             let settingsRoot = $("#settings_plugin_zupfe");
             let navbarRoot = $("#navbar_plugin_zupfe");
 
-            console.log('Message from backend ', message);
-
             switch (message.type) {
                 case EVENT_OCTOPRINT_APIKEY_RECEIVED:
                     self.api_key(message.api_key)

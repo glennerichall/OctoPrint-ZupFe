@@ -4,7 +4,7 @@ from octoprint_zupfe.loops.polling_thread import PollingThreadWithInterval
 
 class ProgressThread(PollingThreadWithInterval):
     def __init__(self, plugin):
-        super().__init__("progress", stop_if_no_recipients=True, interval=0.1)
+        super().__init__("progress", stop_if_no_recipients=True, interval=1)
         self._plugin = plugin
         self._p2p = self._plugin.message_factory
         self._progress = self._plugin.progress

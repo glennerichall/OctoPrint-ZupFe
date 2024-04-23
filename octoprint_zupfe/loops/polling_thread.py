@@ -12,7 +12,7 @@ logger = logging.getLogger("octoprint.plugins.zupfe")
 
 def should_evict_transport(name, recipient, error=None):
     transport = recipient['transport']
-    if recipient['missed_frames'] > 100:
+    if recipient['missed_frames'] > 50:
         logger.debug(
             "Unable to send stream from loop %s to recipient %s more than 100 times consecutively, evicting transport" % (
                 name, transport.uuid))
@@ -71,7 +71,6 @@ class PollingThread(ABC):
     def running(self):
         return not self._done
 
-
     def stop_if_empty(self):
         if not self.has_recipients and self._stop_if_no_recipients:
             logger.debug(
@@ -92,20 +91,20 @@ class PollingThread(ABC):
         self.stop_if_empty()
         return True
 
-
     def validate_and_evict_transport(self, name, recipient, error=None):
         if should_evict_transport(name, recipient, error):
             self.remove_transport(recipient['transport'])
 
     def start(self):
-        self._done = False
-        thread = threading.Thread(target=self.poll)
-        self._thread = thread
+        if self._thread is None:
+            self._done = False
+            thread = threading.Thread(target=self.poll)
+            self._thread = thread
 
-        # daemon mode is mandatory so threads get killed when server shuts down            const client = this.createClient(ws, req);
+            # daemon mode is mandatory so threads get killed when server shuts down            const client = this.createClient(ws, req);
 
-        thread.daemon = True
-        thread.start()
+            thread.daemon = True
+            thread.start()
 
     def stop(self):
         self._thread = None

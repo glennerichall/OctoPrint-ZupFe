@@ -16,7 +16,9 @@ class PollingManager:
         if self._thread is None:
             self._plugin.logger.debug(f'Starting {self._name} thread')
             self._thread = self.create_thread(self._plugin)
-            self._thread.start()
+
+        self._thread.start()
+
 
     @property
     def name(self):

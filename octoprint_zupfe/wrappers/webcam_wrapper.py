@@ -163,12 +163,6 @@ class WebcamWrapper:
                 resp = requests.get(mjpeg_url, stream=True)
                 stream = b''
 
-                # import time
-
-                # Initialize the start time and frame counter
-                # start_time = time.time()
-                # frame_count = 0
-
                 for chunk in resp.iter_content(chunk_size=1024):
                     if is_done():
                         break
@@ -185,17 +179,6 @@ class WebcamWrapper:
 
                         if not is_done():
                             on_frames(frame)
-
-                        # Frame successfully processed, increment frame count
-                        # frame_count += 1
-
-                    # Periodically calculate FPS
-                    # if time.time() - start_time >= 1:  # Every second
-                    #     fps = frame_count / (time.time() - start_time)
-                    #     print(f"FPS: {fps}")
-                    #     # Reset counters for the next measurement
-                    #     start_time = time.time()
-                    #     frame_count = 0
 
             except Exception as e:
                 self._plugin.logger.debug("Unable to read stream from %s: %s" % (mjpeg_url, e))

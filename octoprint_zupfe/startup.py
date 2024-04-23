@@ -40,11 +40,21 @@ async def initialize_backend(plugin):
     await plugin.backend.init()
     plugin.frontend.emitInitialized()
 
+    # FIXME this is really not the best implementation, we need to check for api key validity on ws disconnection
+    # and wait for the validation in the websocket class before attempting a new connection.
+    validating_api_key = False
+
     async def validate_api_key():
         octo_id = plugin.settings.get('octoprint_id', None)
         api_key = plugin.settings.get('api_key', None)
 
         uuid_valid = False
+        nonlocal validating_api_key
+
+        if validating_api_key: return
+
+        validating_api_key = True
+
         while not uuid_valid:
             if octo_id is None:
                 plugin.logger.debug('No octoid, asking for a new one')
@@ -55,6 +65,7 @@ async def initialize_backend(plugin):
                 plugin.settings.save_if_updated('octoprint_id', octo_id)
                 plugin.settings.save_if_updated('api_key', api_key)
                 plugin.settings.save_if_updated('linked', False)
+                plugin.backend.ws.set_credentials(octo_id, api_key)
             else:
                 plugin.backend.set_octo_id(octo_id, api_key)
 
@@ -73,11 +84,13 @@ async def initialize_backend(plugin):
         # self.settings.settings.plugins.zupfe.api_key in zupfe.js does not seem to get settings everytime
         plugin.frontend.emitApiKey(api_key)
 
+        validating_api_key = False
+
     async def on_close():
         plugin.frontend.emitBackendDisconnected()
-        await validate_api_key()
-        await asyncio.sleep(1)
-        connect_ws()
+        nonlocal validating_api_key
+        if not validating_api_key:
+            await validate_api_key()
 
     def connect_ws():
         try:
