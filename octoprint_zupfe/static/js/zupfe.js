@@ -70,7 +70,6 @@ $(function () {
         ;(async () => {
             let urls = await fetch_until_ok('/plugin/zupfe/urls');
             self.urls(urls);
-            console.log(urls)
             self.backend_initialized(true);
 
             let connection = await fetch_until_ok('/plugin/zupfe/connection/status');
@@ -159,6 +158,12 @@ $(function () {
             //     {
             //         type: 'DELETE'
             //     })
+        }
+
+        self.reconnect = async() => {
+            await fetch('/plugin/zupfe/reconnect', {
+                method: 'POST'
+            })
         }
 
         self.onAllBound = () => {

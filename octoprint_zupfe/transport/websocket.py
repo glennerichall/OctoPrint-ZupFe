@@ -141,9 +141,13 @@ class WebSocketClient:
                     'x-api-key': self._api_key
                 }
 
+                def on_open(wss_app):
+                    backoff.reset()
+                    self._on_open(wss_app)
+
                 self._ws = websocket.WebSocketApp(self._backend_ws_url,
                                                   header=headers,
-                                                  on_open=self._on_open,
+                                                  on_open=on_open,
                                                   on_message=self._on_message,
                                                   on_error=self._on_error,
                                                   on_close=self._on_close)
@@ -168,12 +172,20 @@ class WebSocketClient:
             backoff.sleep()
 
     def close(self):
+        logger.debug(f"Stopping websocket thread")
         self._running = False
         self._closed = True
+        logger.debug(f"Forcefully closing websocket")
+        self._ws.close()
 
     def set_credentials(self, octo_id, api_key):
         self._api_key = api_key
         self._octo_id = octo_id
+
+    def reconnect(self):
+        logger.debug(f"Forcefully closing websocket")
+        self._ws.close()
+        self._closed = True
 
     def connect(self, octo_id, api_key):
         self.set_credentials(octo_id, api_key)

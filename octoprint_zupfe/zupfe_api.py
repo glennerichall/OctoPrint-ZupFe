@@ -2,6 +2,8 @@ import flask
 import octoprint
 from flask import jsonify
 
+from octoprint_zupfe.startup import reconnect_backend
+
 
 class ZupfeApiPlugin(octoprint.plugin.BlueprintPlugin):
 
@@ -27,3 +29,11 @@ class ZupfeApiPlugin(octoprint.plugin.BlueprintPlugin):
         if not self.backend.is_initialized:
             return flask.abort(503)
         return jsonify(self.backend.urls)
+
+    @octoprint.plugin.BlueprintPlugin.route("/reconnect", methods=["POST"])
+    def reconnect(self):
+        if not self.backend.is_initialized:
+            return flask.abort(503)
+
+        self.worker.submit_coroutines(reconnect_backend(self))
+        return {}

@@ -1,6 +1,7 @@
 <script type="text/javascript" src="/plugin/zupfe/static/js/constants.js"></script>
 
-<div id="zupfe-settings-content" data-bind="css: { 'offline' : !backend_connected() || !backend_initialized() || !api_key(), 'lost-octoid' : api_key_invalid() }">
+<div id="zupfe-settings-content"
+     data-bind="css: { 'offline' : !backend_connected() || !backend_initialized() || !api_key(), 'lost-octoid' : api_key_invalid() }">
 
     <div class="wizard-header">
         <img class="zupfe-logo" src="/plugin/zupfe/static/img/logo.svg"/>
@@ -25,11 +26,16 @@
                     data-bind="click: unlinkPrinter, attr: { disabled:  !backend_connected() || !backend_initialized() || !api_key() }">
                 Unlink
             </button>
+             <button class="btn btn-secondary btn-complete"
+                    id="settings-zupfe-btn-reconnect"
+                    data-bind="click: reconnect, attr: { disabled:  !backend_connected() || !backend_initialized() || !api_key() }">
+                Force reconnection
+            </button>
         </div>
     </div>
 
     <div class="unlinked">
-        <form data-bind="attr: {action: urls()[URL_PRINTER_LINK] }"  method="POST" target="_blank">
+        <form data-bind="attr: {action: urls()[URL_PRINTER_LINK] }" method="POST" target="_blank">
             <input type="hidden" name="apiKey" data-bind="attr: { value:  api_key() }"/>
             <input class="btn btn-primary btn-complete"
                    id="settings-zupfe-btn-complete"
@@ -37,6 +43,22 @@
                    type="submit" value="Complete Your Setup Now!"/>
         </form>
     </div>
+
+    <div class="printer-info">
+        <span class="info-label">Plugin version</span>
+        <span>{{ plugin_zupfe_octoprint_zupfe_version }}</span>
+
+        <span class="info-label">Printer id</span>
+        <span>{{ plugin_zupfe_octo_id }}</span>
+
+        <span class="info-label">Frontend <sup>*</sup></span>
+        <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.zupfe.frontend_url">
+
+        <span class="info-label">Backend <sup>*</sup></span>
+        <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.zupfe.backend_url">
+    </div>
+
+    <div class="note">* You need to restart OctoPrint to make these changes effective.</div>
 
     <div class="lost-octoid-message">
         This printer is no longer found in our system.

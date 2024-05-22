@@ -72,7 +72,7 @@ class MjpegStreamManager:
 
             manager.remove_recipient(transport)
 
-            if manager.is_done:
+            if not manager.running:
                 self._plugin.logger.debug(f"Camera {camera_id} has no more recipients, stopping thread")
                 self._managers.pop(camera_id)
 

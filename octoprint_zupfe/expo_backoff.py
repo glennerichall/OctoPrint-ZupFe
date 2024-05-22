@@ -12,11 +12,14 @@ class ExponentialBackoff:
         self.current_interval = base_interval
         self.last_call_time = time.time()
 
+    def reset(self):
+        self.current_interval = self.base_interval
+
     def consume(self):
         current_time = time.time()
         # Check if wait was called after a 10-minute interval
         if current_time - self.last_call_time >= 600:
-            self.current_interval = self.base_interval
+            self.reset()
         else:
             # Increase the backoff interval, up to the max_interval
             self.current_interval = min(self.current_interval * 2, self.max_interval)

@@ -62,7 +62,7 @@ class ZupfePlugin(
     @property
     def version(self):
         # TODO get the version from setup.py
-        return "o.0.1.2"
+        return "o.0.1.3"
 
     @property
     def host(self):
@@ -220,7 +220,7 @@ class ZupfePlugin(
 
     def get_settings_defaults(self):
         return {
-            'backend_url': 'https://zupfe.velor.ca',
+            'backend_url': 'https://backend.zupfe.velor.ca',
             'frontend_url': 'https://zupfe.velor.ca',
             'linked': False,
             'api_key': None,

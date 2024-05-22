@@ -34,6 +34,9 @@ async def on_connected(plugin):
     except Exception as e:
         plugin.logger.error(str(e))
 
+async def reconnect_backend(plugin):
+    plugin.backend.ws.close()
+    await initialize_backend(plugin)
 
 async def initialize_backend(plugin):
     plugin.logger.debug('Initializing backend')

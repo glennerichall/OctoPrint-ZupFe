@@ -35,6 +35,30 @@
 #wizard_plugin_zupfe,
 #settings_plugin_zupfe {
 
+  .note {
+    color: grey;
+  }
+
+  .printer-info {
+    align-items: center;
+    color: grey;
+    padding: 5px 8px;
+    border: 1px solid lightgray;
+    border-radius: 5px;
+    display: grid;
+    column-gap: 12px;
+    row-gap: 3px;
+    grid-template-columns: max-content 1fr;
+
+    input {
+      margin: 0;
+    }
+
+    .info-label {
+      font-weight: bold;
+    }
+  }
+
   .message-offline {
     display: none;
   }
